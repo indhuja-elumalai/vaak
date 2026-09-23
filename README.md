@@ -50,7 +50,7 @@ It ships with an evaluation harness that scores every run against a fixed test s
 |---|---|
 | Language | Python |
 | STT / TTS | Sarvam AI API (Indian language/accent support), fallback: OpenAI Whisper + TTS API |
-| Agent / tool-calling | OpenAI or Anthropic function-calling API |
+| Agent / tool-calling | Sarvam `sarvam-105b` (OpenAI-compatible function calling), switchable to OpenAI via `VAAK_LLM_PROVIDER` |
 | Eval | Custom lightweight script (`eval/eval_runner.py`), no heavy framework |
 | Dev environment | Local script / Colab notebook |
 | Version control | Git, branch-per-feature workflow (see below) |
@@ -70,6 +70,7 @@ vaak/
   eval/
     eval_runner.py         # scoring harness
     study_eval_set.json    # today's test cases
+  smoke_agent.py           # 13-query routing check (feat/agent-core manual test)
   cli.py                   # wires everything together for the demo
   README.md
 ```
@@ -81,7 +82,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 | Branch | Goal | Manual test before merge |
 |---|---|---|
 | `feat/stt-io` | STT + TTS wrappers working round-trip | Run `python -m voice_io.stt` on a sample audio file → transcript printed correctly. Run `python -m voice_io.tts` on sample text → audio file produced and playable. |
-| `feat/agent-core` | Agent decides direct-answer vs tool-call correctly | Run `core/agent_runtime.py` on 5–10 hardcoded text queries → confirm each routes to the correct tool or direct answer by manual inspection. |
+| `feat/agent-core` | Agent decides direct-answer vs tool-call correctly | Run `python smoke_agent.py` on 13 hardcoded text queries (English, Hindi, Hinglish, Tamil, Tanglish) → confirm each routes to the correct tool or direct answer by manual inspection. |
 | `feat/full-loop` | STT → agent → TTS wired end to end | Speak/upload one query → hear a correct spoken response, no crashes. Confirm text-only fallback path also works. |
 | `feat/eval-harness` | Eval script scores the full pipeline | Run `eval/eval_runner.py` against `study_eval_set.json` → a results table prints with accuracy, task-completion rate, and latency per query. |
 | `docs/demo` | README finalized, Loom recorded | README's Progress Tracker fully checked. Loom recorded showing one live query + eval output. |
@@ -89,7 +90,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 ## Progress Tracker
 
 - [x] `feat/stt-io` merged
-- [ ] `feat/agent-core` merged
+- [x] `feat/agent-core` merged
 - [ ] `feat/full-loop` merged
 - [ ] `feat/eval-harness` merged
 - [ ] `docs/demo` merged — Loom recorded
