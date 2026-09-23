@@ -5,9 +5,11 @@ This is a quick smoke test; the real scoring harness lives in eval/ (feat/eval-h
 
   python smoke_agent.py              # single-turn routing
   python smoke_agent.py --followups  # two-turn conversations (memory)
+  python smoke_agent.py --grounding  # answer checking: verdicts + a forced misquote rewrite
   python smoke_agent.py -v           # also print tool calls and answers
 """
 import argparse
+from types import SimpleNamespace as NS
 
 from core.agent_runtime import Agent, load_tools, print_result
 from core.conversation import Conversation
@@ -59,10 +61,52 @@ def run_followups(agent: Agent, verbose: bool) -> None:
     print(f"{passed}/{len(FOLLOWUPS)} follow-ups answered from context")
 
 
+# (question, expected grounding verdict)
+GROUNDING = [
+    ("25 kg in pounds?", "verified"),
+    ("What is 37 times 48?", "verified"),
+    ("Who wrote India's national anthem?", "unverified"),
+]
+
+
+def run_grounding(agent: Agent, verbose: bool) -> None:
+    passed = 0
+    for i, (query, expected) in enumerate(GROUNDING, 1):
+        r = agent.run(query)
+        ok = r.grounding.verdict == expected
+        passed += ok
+        print(f"{'PASS' if ok else 'FAIL'}  #{i}  expected={expected:<10} got={r.grounding.verdict:<10} {query}")
+        if verbose or not ok:
+            print_result(r)
+            print()
+
+    # Force a misquote: the first draft says 57.3 lb (the tool says 55.1156). The check must
+    # catch it and the real LLM must rewrite it.
+    real = agent.client
+    scripted = [
+        NS(tool_calls=[NS(id="call_forced", function=NS(
+            name="convert_units", arguments='{"value": 25, "from_unit": "kg", "to_unit": "lb"}'))], content=""),
+        NS(tool_calls=None, content="25 kg is about 57.3 pounds."),
+    ]
+    def create(**kw):
+        return NS(choices=[NS(message=scripted.pop(0))]) if scripted else real.chat.completions.create(**kw)
+    agent.client = NS(chat=NS(completions=NS(create=create)))
+    try:
+        r = agent.run("25 kg in pounds?")
+    finally:
+        agent.client = real
+    ok = r.grounding.verdict == "corrected" and "57.3" not in r.answer
+    passed += ok
+    print(f"{'PASS' if ok else 'FAIL'}  #{len(GROUNDING) + 1}  forced misquote: draft={r.draft_answer!r}")
+    print(f"        rewritten={r.answer!r}  verdict={r.grounding.verdict}")
+    print(f"\n{passed}/{len(GROUNDING) + 1} grounding checks passed")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--followups", action="store_true", help="run two-turn memory checks")
+    parser.add_argument("--grounding", action="store_true", help="run answer-checking checks")
     parser.add_argument("--provider", choices=["sarvam", "openai"], default=None)
     args = parser.parse_args()
 
@@ -70,6 +114,8 @@ def main() -> None:
     agent = Agent(registry, system_prompt=load_tools("tools.study_tools", registry), provider=args.provider)
     if args.followups:
         return run_followups(agent, args.verbose)
+    if args.grounding:
+        return run_grounding(agent, args.verbose)
 
     passed = 0
     for i, (query, expected) in enumerate(QUERIES, 1):

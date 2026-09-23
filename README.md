@@ -63,6 +63,8 @@ vaak/
   core/
     agent_runtime.py      # input → intent → tool-or-direct → output loop
     pipeline.py           # STT → agent → TTS, with text-only fallback
+    conversation.py       # multi-turn memory (per-session history)
+    grounding.py          # checks answer numbers against tool results
     tool_registry.py      # register_tool(name, schema, handler)
   voice_io/               # named voice_io, not io: a local `io` package collides with the Python stdlib
     stt.py                 # speech-to-text wrapper
@@ -72,7 +74,7 @@ vaak/
   eval/
     eval_runner.py         # scoring harness
     study_eval_set.json    # today's test cases
-  smoke_agent.py           # 13-query routing check (feat/agent-core manual test)
+  smoke_agent.py           # routing (13), --followups (4), --grounding (4) checks
   cli.py                   # wires everything together for the demo
   web/
     server.py              # FastAPI: /api/ask/text, /api/ask/audio, reply audio
@@ -102,7 +104,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 - [x] `feat/full-loop` merged
 - [x] `feat/web-ui` merged
 - [x] `feat/memory` merged
-- [ ] `feat/grounding` merged
+- [x] `feat/grounding` merged
 - [ ] `feat/eval-harness` merged
 - [ ] `docs/demo` merged — Loom recorded
 

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from openai import OpenAI
 
 from core.conversation import Conversation
+from core.grounding import GroundingResult, check_answer, correction_prompt, known_from_messages
 from core.tool_registry import ToolRegistry
 
 try:
@@ -58,6 +59,8 @@ Replying:
 - Reply in the language given in the "Reply language" line below. Never switch to another language.
 - Keep it short: one to three spoken sentences.
 - Plain text only: no markdown, no LaTeX, no bullet points, no emojis.
+- Write numbers as digits (55.12, not "fifty-five point one two"), and quote tool results \
+exactly or rounded. Your numbers are checked against the tool results.
 """
 
 
@@ -129,6 +132,17 @@ class ToolCall:
 
 
 @dataclass
+class TraceStep:
+    """One step of a turn, for the timeline: start and duration are ms from turn start."""
+    kind: str  # stt | llm | tool | check | tts
+    label: str
+    detail: str
+    start_ms: float
+    duration_ms: float
+    error: bool = False
+
+
+@dataclass
 class AgentResult:
     query: str
     answer: str
@@ -137,6 +151,9 @@ class AgentResult:
     latency_ms: float = 0.0
     llm_calls: int = 0
     model: str = ""
+    grounding: GroundingResult | None = None
+    draft_answer: str | None = None  # the first answer, if grounding forced a rewrite
+    trace: list[TraceStep] = field(default_factory=list)
 
     @property
     def route(self) -> str:
@@ -190,7 +207,7 @@ class Agent:
         language_code: str | None = None,
         conversation: Conversation | None = None,
     ) -> AgentResult:
-        """Answer one query.
+        """Answer one query, then check the answer's numbers against tool results.
 
         language_code: optional BCP-47 code from STT; otherwise detected from the text.
         conversation: earlier turns to use as context; this turn is appended to it.
@@ -204,10 +221,42 @@ class Agent:
             {"role": "user", "content": query},
         ]
         turn_start = len(messages) - 1
-        tools = self.registry.schemas()
-        start = time.perf_counter()
+        self._t0 = time.perf_counter()
 
+        answer = self._loop(messages, result, rewrite=False)
+        turn_messages = messages[turn_start:]
+        grounding = self._check(answer, messages[1:], result)
+
+        if grounding.verdict == "flagged":
+            # One rewrite. The draft and the correction note are not kept in memory.
+            result.draft_answer = answer
+            work = messages + [
+                {"role": "assistant", "content": answer},
+                {"role": "user", "content": correction_prompt(grounding.unsupported)},
+            ]
+            correction_at = len(work)
+            answer = self._loop(work, result, rewrite=True)
+            new_tool_traffic = work[correction_at:]
+            turn_messages = turn_messages + new_tool_traffic
+            second = self._check(answer, messages[1:] + new_tool_traffic, result, after_rewrite=True)
+            grounding = GroundingResult(
+                "corrected" if second.verdict == "verified" else "flagged",
+                checked=second.checked,
+                unsupported=second.unsupported,
+            )
+
+        result.answer = answer
+        result.grounding = grounding
+        if conversation is not None:
+            conversation.add_turn(turn_messages + [{"role": "assistant", "content": answer}])
+        result.latency_ms = self._elapsed()
+        return result
+
+    def _loop(self, messages: list[dict], result: AgentResult, rewrite: bool) -> str:
+        """LLM <-> tools until the LLM answers. Appends tool traffic to messages in place."""
+        tools = self.registry.schemas()
         for _ in range(self.max_steps):
+            t = self._elapsed()
             resp = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -219,9 +268,12 @@ class Agent:
             msg = resp.choices[0].message
 
             if not msg.tool_calls:
-                result.answer = (msg.content or "").strip()
-                break
+                label = "Rewrote the answer to match tool results" if rewrite else "Wrote the answer"
+                result.trace.append(TraceStep("llm", label, self.model, t, self._elapsed() - t))
+                return (msg.content or "").strip()
 
+            names = ", ".join(tc.function.name for tc in msg.tool_calls)
+            result.trace.append(TraceStep("llm", f"Chose {names}", self.model, t, self._elapsed() - t))
             messages.append(
                 {
                     "role": "assistant",
@@ -237,21 +289,48 @@ class Agent:
                 }
             )
             for tc in msg.tool_calls:
+                t = self._elapsed()
                 output = self.registry.call(tc.function.name, tc.function.arguments)
-                result.tool_calls.append(
-                    ToolCall(tc.function.name, _parse_args(tc.function.arguments), output)
-                )
+                args = _parse_args(tc.function.arguments)
+                result.tool_calls.append(ToolCall(tc.function.name, args, output))
+                result.trace.append(TraceStep(
+                    "tool", f"Ran {tc.function.name}", _summarize(args, output), t, self._elapsed() - t,
+                    error="error" in output,
+                ))
                 messages.append(
                     {"role": "tool", "tool_call_id": tc.id, "content": json.dumps(output, ensure_ascii=False)}
                 )
-        else:
-            result.answer = "Sorry, I couldn't finish that request."
+        return "Sorry, I couldn't finish that request."
 
-        messages.append({"role": "assistant", "content": result.answer})
-        if conversation is not None:
-            conversation.add_turn(messages[turn_start:])
-        result.latency_ms = (time.perf_counter() - start) * 1000
-        return result
+    def _check(
+        self, answer: str, context: list[dict], result: AgentResult, after_rewrite: bool = False
+    ) -> GroundingResult:
+        t = self._elapsed()
+        known, had_tools = known_from_messages(context)
+        g = check_answer(answer, known, had_tools, turn_used_tools=bool(result.tool_calls))
+        if g.verdict == "unverified":
+            detail = "Direct answer from the model — no tool results to check against"
+        elif not result.tool_calls:
+            detail = f"{len(g.checked)} number(s) match earlier tool results"
+        elif g.unsupported:
+            detail = f"Not found in tool results: {', '.join(g.unsupported)}"
+        elif g.checked:
+            detail = f"{len(g.checked)} number(s) match tool results" + (" after rewrite" if after_rewrite else "")
+        else:
+            detail = "No numbers in the answer to check"
+        result.trace.append(TraceStep(
+            "check", "Checked numbers against tool results", detail, t, self._elapsed() - t,
+            error=bool(g.unsupported),
+        ))
+        return g
+
+    def _elapsed(self) -> float:
+        return (time.perf_counter() - self._t0) * 1000
+
+
+def _summarize(args: dict, output: dict, limit: int = 110) -> str:
+    text = f"{json.dumps(args, ensure_ascii=False)} → {json.dumps(output, ensure_ascii=False)}"
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def _parse_args(arguments: str) -> dict:
@@ -275,6 +354,11 @@ def print_result(r: AgentResult) -> None:
         print(f"  tool  : {c.name}({json.dumps(c.arguments, ensure_ascii=False)}) -> "
               f"{json.dumps(c.result, ensure_ascii=False)}")
     print(f"answer  : {r.answer}")
+    if r.grounding:
+        extra = f" (unsupported: {', '.join(r.grounding.unsupported)})" if r.grounding.unsupported else ""
+        print(f"check   : {r.grounding.verdict}{extra}")
+    if r.draft_answer:
+        print(f"draft   : {r.draft_answer}")
     print(f"latency : {r.latency_ms:.0f} ms ({r.llm_calls} LLM calls, {r.model})")
 
 
