@@ -1,8 +1,8 @@
 """Voice pipeline: STT -> agent -> TTS, with a text-only fallback path.
 
-    pipeline = VoicePipeline(agent)
+    pipeline = VoicePipeline(agent, conversation=Conversation())
     turn = pipeline.run_audio("question.m4a")   # spoken query
-    turn = pipeline.run_text("What is 37*48?")  # typed query (the fallback path)
+    turn = pipeline.run_text("and in grams?")   # typed follow-up (also the fallback path)
 
 Failures degrade instead of crashing:
   - STT fails  -> PipelineError; callers fall back to asking for typed text
@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.agent_runtime import Agent, AgentResult, detect_language
+from core.conversation import Conversation
 from voice_io.stt import Transcript, transcribe
 from voice_io.tts import SARVAM_TTS_LANGS, SpeechResult, prepare_for_speech, synthesize
 
@@ -42,10 +43,17 @@ class TurnResult:
 
 
 class VoicePipeline:
-    def __init__(self, agent: Agent, speak: bool = True, out_dir: str | Path = "out") -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        speak: bool = True,
+        out_dir: str | Path = "out",
+        conversation: Conversation | None = None,
+    ) -> None:
         self.agent = agent
         self.speak = speak
         self.out_dir = Path(out_dir)
+        self.conversation = conversation  # None = every question stands alone
 
     def run_audio(self, audio_path: str | Path) -> TurnResult:
         start = time.perf_counter()
@@ -69,7 +77,7 @@ class VoicePipeline:
         return turn
 
     def _answer(self, query: str, language_code: str | None, input_mode: str) -> TurnResult:
-        agent_result = self.agent.run(query, language_code=language_code)
+        agent_result = self.agent.run(query, language_code=language_code, conversation=self.conversation)
         turn = TurnResult(input_mode=input_mode, query=query, agent=agent_result)
         turn.timings_ms["agent"] = agent_result.latency_ms
 

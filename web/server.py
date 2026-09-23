@@ -6,9 +6,13 @@
 Endpoints:
   GET  /                    the app
   GET  /api/info            model and tool names for the header
-  POST /api/ask/text        {"text": "...", "speak": true}
-  POST /api/ask/audio       multipart: file=<audio>, speak=true|false
+  POST /api/ask/text        {"text": "...", "speak": true, "session_id": "..."}
+  POST /api/ask/audio       multipart: file=<audio>, speak=true|false, session_id=...
+  DELETE /api/session/<id>  forget a conversation ("New chat")
   GET  /api/audio/<name>    a synthesized reply (WAV)
+
+Each browser tab sends a session_id; turns with the same id share conversation memory,
+so follow-up questions work. Without a session_id every question stands alone.
 """
 from __future__ import annotations
 
@@ -23,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from core.agent_runtime import Agent, detect_language, load_tools
+from core.conversation import Conversation, ConversationStore
 from core.pipeline import PipelineError, TurnResult, VoicePipeline
 from core.tool_registry import ToolRegistry
 
@@ -32,6 +37,7 @@ OUT_DIR = Path("out")
 UPLOAD_DIR = OUT_DIR / "uploads"
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 REPLY_NAME = re.compile(r"^reply_[0-9a-f]{8}\.wav$")
+SESSION_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".mp4", ".aac", ".ogg", ".opus", ".webm", ".flac", ".aiff"}
 
 _LANGUAGE_LABELS = {
@@ -43,12 +49,31 @@ _LANGUAGE_LABELS = {
 
 registry = ToolRegistry()
 agent = Agent(registry, system_prompt=load_tools(TOOLS_MODULE, registry))
+sessions = ConversationStore()
 app = FastAPI(title="Vaak")
 
 
 class TextQuery(BaseModel):
     text: str
     speak: bool = True
+    session_id: str | None = None
+
+
+def conversation_for(session_id: str | None) -> Conversation | None:
+    if session_id is None:
+        return None
+    if not SESSION_ID.match(session_id):
+        raise HTTPException(400, "Invalid session id")
+    return sessions.get(session_id)
+
+
+def run_turn(conversation: Conversation | None, speak: bool, run):
+    """Run one turn; turns in the same conversation run one at a time."""
+    pipeline = VoicePipeline(agent, speak=speak, out_dir=OUT_DIR, conversation=conversation)
+    if conversation is None:
+        return run(pipeline)
+    with conversation.lock:
+        return run(pipeline)
 
 
 def language_label(lang: str, text: str) -> str:
@@ -56,9 +81,10 @@ def language_label(lang: str, text: str) -> str:
     return _LANGUAGE_LABELS.get((lang, script), "English")
 
 
-def serialize(turn: TurnResult) -> dict:
+def serialize(turn: TurnResult, conversation: Conversation | None) -> dict:
     a = turn.agent
     return {
+        "turns_in_memory": len(conversation) if conversation else 0,
         "input_mode": turn.input_mode,
         "query": turn.query,
         "transcript": (
@@ -88,11 +114,17 @@ def ask_text(q: TextQuery) -> dict:
     text = q.text.strip()
     if not text:
         raise HTTPException(400, "Question is empty")
-    return serialize(VoicePipeline(agent, speak=q.speak, out_dir=OUT_DIR).run_text(text))
+    conversation = conversation_for(q.session_id)
+    return serialize(run_turn(conversation, q.speak, lambda p: p.run_text(text)), conversation)
 
 
 @app.post("/api/ask/audio")
-def ask_audio(file: UploadFile = File(...), speak: bool = Form(True)):
+def ask_audio(
+    file: UploadFile = File(...),
+    speak: bool = Form(True),
+    session_id: str | None = Form(None),
+):
+    conversation = conversation_for(session_id)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in AUDIO_SUFFIXES:
         raise HTTPException(400, f"Unsupported audio type: {suffix or 'unknown'}")
@@ -104,13 +136,20 @@ def ask_audio(file: UploadFile = File(...), speak: bool = Form(True)):
     path = UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
     path.write_bytes(data)
     try:
-        turn = VoicePipeline(agent, speak=speak, out_dir=OUT_DIR).run_audio(path)
+        turn = run_turn(conversation, speak, lambda p: p.run_audio(path))
     except PipelineError as e:
         # 422 with stage=stt tells the page to fall back to typing.
         return JSONResponse({"error": str(e), "stage": "stt"}, status_code=422)
     finally:
         path.unlink(missing_ok=True)
-    return serialize(turn)
+    return serialize(turn, conversation)
+
+
+@app.delete("/api/session/{session_id}")
+def forget_session(session_id: str) -> dict:
+    if SESSION_ID.match(session_id):
+        sessions.delete(session_id)
+    return {"ok": True}
 
 
 @app.get("/api/audio/{name}")
