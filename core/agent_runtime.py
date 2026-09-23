@@ -35,6 +35,8 @@ except ImportError:
     pass
 
 SARVAM_BASE_URL = "https://api.sarvam.ai/v1"
+# Per LLM request; a hung request fails fast (after one retry) instead of stalling the voice loop.
+LLM_TIMEOUT_S = float(os.getenv("VAAK_LLM_TIMEOUT_S", "30"))
 
 BASE_SYSTEM_PROMPT = """\
 You are a voice assistant. Your replies are read aloud by a text-to-speech engine.
@@ -152,6 +154,8 @@ def make_llm_client(provider: str | None = None) -> tuple[OpenAI, str, dict]:
             api_key=key,
             base_url=SARVAM_BASE_URL,
             default_headers={"api-subscription-key": key},
+            timeout=LLM_TIMEOUT_S,
+            max_retries=1,
         )
         # sarvam-105b is a reasoning model; low effort keeps voice latency down.
         extra = {"extra_body": {"reasoning_effort": os.getenv("SARVAM_REASONING_EFFORT", "low")}}
@@ -159,7 +163,7 @@ def make_llm_client(provider: str | None = None) -> tuple[OpenAI, str, dict]:
     if provider == "openai":
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("OPENAI_API_KEY is not set in .env")
-        return OpenAI(), os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"), {}
+        return OpenAI(timeout=LLM_TIMEOUT_S, max_retries=1), os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini"), {}
     raise ValueError(f"Unknown LLM provider: {provider!r}")
 
 

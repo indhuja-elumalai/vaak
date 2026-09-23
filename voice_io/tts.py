@@ -151,6 +151,30 @@ def _synthesize_openai(text: str, out_path: Path) -> SpeechResult:
     return SpeechResult(path=out_path, provider="openai", latency_ms=latency_ms)
 
 
+_SPEECH_REPLACEMENTS = [
+    (r"\\\(|\\\)|\\\[|\\\]|\$", ""),              # LaTeX delimiters
+    (r"\*\*|__|`|^#+\s*", ""),                    # markdown emphasis, code, headings
+    (r"\\times|\\cdot", " times "),                  # LaTeX operators
+    (r"\(1/2\)|\b1/2\b", "half"),
+    (r"\^\s*2\b|²", " squared"),
+    (r"\^\s*3\b|³", " cubed"),
+    (r"\^\s*\(?([\w.+-]+)\)?", r" to the power \1"),
+    (r"\s*[*×]\s*", " times "),                   # "m * a", "I × R"
+    (r"\s*÷\s*", " divided by "),
+    (r"\s*±\s*", " plus or minus "),
+    (r"\bsqrt\s*\(", "square root of ("),
+    (r"\s*=\s*", " equals "),
+    (r"\s{2,}", " "),
+]
+
+
+def prepare_for_speech(text: str) -> str:
+    """Rewrite symbols a TTS engine reads badly ("v^2", "m * a", LaTeX) into words."""
+    for pattern, repl in _SPEECH_REPLACEMENTS:
+        text = re.sub(pattern, repl, text, flags=re.MULTILINE)
+    return text.strip()
+
+
 def _split_text(text: str, max_chars: int) -> list[str]:
     """Split on sentence boundaries (incl. Hindi danda) so each chunk fits the API limit."""
     if len(text) <= max_chars:
