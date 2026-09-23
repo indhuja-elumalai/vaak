@@ -61,6 +61,7 @@ It ships with an evaluation harness that scores every run against a fixed test s
 vaak/
   core/
     agent_runtime.py      # input → intent → tool-or-direct → output loop
+    pipeline.py           # STT → agent → TTS, with text-only fallback
     tool_registry.py      # register_tool(name, schema, handler)
   voice_io/               # named voice_io, not io: a local `io` package collides with the Python stdlib
     stt.py                 # speech-to-text wrapper
@@ -84,6 +85,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 | `feat/stt-io` | STT + TTS wrappers working round-trip | Run `python -m voice_io.stt` on a sample audio file → transcript printed correctly. Run `python -m voice_io.tts` on sample text → audio file produced and playable. |
 | `feat/agent-core` | Agent decides direct-answer vs tool-call correctly | Run `python smoke_agent.py` on 13 hardcoded text queries (English, Hindi, Hinglish, Tamil, Tanglish) → confirm each routes to the correct tool or direct answer by manual inspection. |
 | `feat/full-loop` | STT → agent → TTS wired end to end | Speak/upload one query → hear a correct spoken response, no crashes. Confirm text-only fallback path also works. |
+| `feat/web-ui` | Clean, professional web interface over the full loop | Open the local web app → ask by mic and by typing → see transcript, tool used, language and latency, and hear the reply. Fallback to typing works when the mic is unavailable. |
 | `feat/eval-harness` | Eval script scores the full pipeline | Run `eval/eval_runner.py` against `study_eval_set.json` → a results table prints with accuracy, task-completion rate, and latency per query. |
 | `docs/demo` | README finalized, Loom recorded | README's Progress Tracker fully checked. Loom recorded showing one live query + eval output. |
 
@@ -91,7 +93,8 @@ Each branch below must pass its own manual test checklist before merging to `mai
 
 - [x] `feat/stt-io` merged
 - [x] `feat/agent-core` merged
-- [ ] `feat/full-loop` merged
+- [x] `feat/full-loop` merged
+- [ ] `feat/web-ui` merged
 - [ ] `feat/eval-harness` merged
 - [ ] `docs/demo` merged — Loom recorded
 
@@ -99,7 +102,10 @@ Each branch below must pass its own manual test checklist before merging to `mai
 
 ```bash
 pip install -r requirements.txt
-python cli.py            # interactive demo
+cp .env.example .env     # add SARVAM_API_KEY (and optionally OPENAI_API_KEY)
+python cli.py                              # interactive: type, or /audio <path>
+python cli.py --audio samples/question.m4a # spoken question from a file
+python cli.py --text "37 times 48?" --text-only
 python eval/eval_runner.py   # run the eval suite
 ```
 
