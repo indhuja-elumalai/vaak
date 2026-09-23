@@ -51,6 +51,7 @@ It ships with an evaluation harness that scores every run against a fixed test s
 | Language | Python |
 | STT / TTS | Sarvam AI API (Indian language/accent support), fallback: OpenAI Whisper + TTS API |
 | Agent / tool-calling | Sarvam `sarvam-105b` (OpenAI-compatible function calling), switchable to OpenAI via `VAAK_LLM_PROVIDER` |
+| Web UI | FastAPI + plain HTML/CSS/JS (no framework, no build step) |
 | Eval | Custom lightweight script (`eval/eval_runner.py`), no heavy framework |
 | Dev environment | Local script / Colab notebook |
 | Version control | Git, branch-per-feature workflow (see below) |
@@ -73,6 +74,9 @@ vaak/
     study_eval_set.json    # today's test cases
   smoke_agent.py           # 13-query routing check (feat/agent-core manual test)
   cli.py                   # wires everything together for the demo
+  web/
+    server.py              # FastAPI: /api/ask/text, /api/ask/audio, reply audio
+    static/                # single-page UI (HTML/CSS/JS, no build step)
   README.md
 ```
 
@@ -94,7 +98,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 - [x] `feat/stt-io` merged
 - [x] `feat/agent-core` merged
 - [x] `feat/full-loop` merged
-- [ ] `feat/web-ui` merged
+- [x] `feat/web-ui` merged
 - [ ] `feat/eval-harness` merged
 - [ ] `docs/demo` merged — Loom recorded
 
@@ -106,6 +110,7 @@ cp .env.example .env     # add SARVAM_API_KEY (and optionally OPENAI_API_KEY)
 python cli.py                              # interactive: type, or /audio <path>
 python cli.py --audio samples/question.m4a # spoken question from a file
 python cli.py --text "37 times 48?" --text-only
+python -m web.server                       # web app at http://localhost:8765
 python eval/eval_runner.py   # run the eval suite
 ```
 
