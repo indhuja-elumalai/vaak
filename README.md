@@ -90,7 +90,9 @@ Each branch below must pass its own manual test checklist before merging to `mai
 | `feat/agent-core` | Agent decides direct-answer vs tool-call correctly | Run `python smoke_agent.py` on 13 hardcoded text queries (English, Hindi, Hinglish, Tamil, Tanglish) → confirm each routes to the correct tool or direct answer by manual inspection. |
 | `feat/full-loop` | STT → agent → TTS wired end to end | Speak/upload one query → hear a correct spoken response, no crashes. Confirm text-only fallback path also works. |
 | `feat/web-ui` | Clean, professional web interface over the full loop | Open the local web app → ask by mic and by typing → see transcript, tool used, language and latency, and hear the reply. Fallback to typing works when the mic is unavailable. |
-| `feat/eval-harness` | Eval script scores the full pipeline | Run `eval/eval_runner.py` against `study_eval_set.json` → a results table prints with accuracy, task-completion rate, and latency per query. |
+| `feat/memory` | Multi-turn conversations: follow-ups use earlier context | Ask a question, then a follow-up that depends on it ("and in grams?") in the web UI and CLI → the follow-up is answered correctly. "New chat" starts fresh. |
+| `feat/grounding` | Answers verified against tool results, with a per-turn trace | Numbers in answers match tool outputs (mismatches are corrected or flagged); direct answers are labelled unverified; each answer shows a step-by-step timeline in the UI. |
+| `feat/eval-harness` | Eval script scores the full pipeline | Run `eval/eval_runner.py` against `study_eval_set.json` (single-turn + follow-ups, text + voice) → a results table prints with transcript accuracy, routing accuracy, task completion, grounding rate and latency; model comparison; CI runs the eval on every PR. |
 | `docs/demo` | README finalized, Loom recorded | README's Progress Tracker fully checked. Loom recorded showing one live query + eval output. |
 
 ## Progress Tracker
@@ -99,6 +101,8 @@ Each branch below must pass its own manual test checklist before merging to `mai
 - [x] `feat/agent-core` merged
 - [x] `feat/full-loop` merged
 - [x] `feat/web-ui` merged
+- [x] `feat/memory` merged
+- [ ] `feat/grounding` merged
 - [ ] `feat/eval-harness` merged
 - [ ] `docs/demo` merged — Loom recorded
 
@@ -117,6 +121,8 @@ python eval/eval_runner.py   # run the eval suite
 ## Future integration
 
 The `core/` runtime is domain-agnostic by design. A future `tools/*.py` file (e.g. tools that call into a separate project's API) can be registered without touching `core/` or `voice_io/` at all — the voice+agent+eval infrastructure built here is meant to be reused, not rebuilt, for any future project that needs a natural-language front end over real actions.
+
+**Planned: `feat/second-domain`** — plug a second tool module (e.g. finance tools from a separate project) into the same runtime with `--tools tools.finance_tools`, with zero changes to `core/` or `voice_io/`, to prove the runtime/tools boundary in practice.
 
 ## License
 

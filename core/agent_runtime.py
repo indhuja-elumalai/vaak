@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 
 from openai import OpenAI
 
+from core.conversation import Conversation
 from core.tool_registry import ToolRegistry
 
 try:
@@ -47,6 +48,9 @@ you MUST call the tool. Never do arithmetic, conversions or lookups in your head
 even easy ones.
 - If no tool fits (explanations, facts, definitions, opinions), answer directly \
 without calling any tool.
+- Follow-up questions ("and in grams?", "now calculate it for 2 kg") refer to the earlier \
+conversation: work out the full request from context and call the tool again with the \
+updated values. Never reuse an old tool result for a new number.
 - Pass tool arguments in English and plain ASCII (e.g. "sqrt(144)", "km", "kinetic energy"), \
 whatever language the user spoke.
 
@@ -180,14 +184,26 @@ class Agent:
         self.client, self.model, self._extra = make_llm_client(provider)
         self.max_steps = max_steps
 
-    def run(self, query: str, language_code: str | None = None) -> AgentResult:
-        """language_code: optional BCP-47 code from STT; otherwise detected from the text."""
+    def run(
+        self,
+        query: str,
+        language_code: str | None = None,
+        conversation: Conversation | None = None,
+    ) -> AgentResult:
+        """Answer one query.
+
+        language_code: optional BCP-47 code from STT; otherwise detected from the text.
+        conversation: earlier turns to use as context; this turn is appended to it.
+        """
         lang, instruction = reply_instruction(query, language_code)
         result = AgentResult(query=query, answer="", reply_language=lang, model=self.model)
+        history = conversation.messages() if conversation else []
         messages: list[dict] = [
             {"role": "system", "content": f"{self.system_prompt}\nReply language: {instruction}"},
+            *history,
             {"role": "user", "content": query},
         ]
+        turn_start = len(messages) - 1
         tools = self.registry.schemas()
         start = time.perf_counter()
 
@@ -231,6 +247,9 @@ class Agent:
         else:
             result.answer = "Sorry, I couldn't finish that request."
 
+        messages.append({"role": "assistant", "content": result.answer})
+        if conversation is not None:
+            conversation.add_turn(messages[turn_start:])
         result.latency_ms = (time.perf_counter() - start) * 1000
         return result
 

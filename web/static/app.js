@@ -12,6 +12,7 @@ const els = {
   micBtn: $("#micBtn"), sendBtn: $("#sendBtn"), attachBtn: $("#attachBtn"), fileInput: $("#fileInput"),
   status: $("#status"), toast: $("#toast"), player: $("#player"), voiceToggle: $("#voiceToggle"),
   themeToggle: $("#themeToggle"), modelPill: $("#modelPill"), footnote: $("#footnote"),
+  newChat: $("#newChat"),
 };
 
 /* ================= Atom =================
@@ -30,6 +31,7 @@ let atomSeq = 0;
 class Atom {
   constructor(host) {
     const id = `atom${atomSeq++}`;
+    this.host = host;
     const small = host.classList.contains("atom-sm") || host.classList.contains("atom-xs");
     const stroke = small ? 4.2 : 2.2, electronR = small ? 6.5 : 4.4, nucleusR = small ? 13 : 11;
     host.innerHTML = `
@@ -231,6 +233,11 @@ els.player.addEventListener("play", () => setState("speaking"));
 let busy = false;
 let voiceOn = store.get("vaak-voice") !== "off";
 
+// One conversation per page: the server keeps its memory under this id.
+const newSessionId = () =>
+  crypto.randomUUID?.() ?? `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+let sessionId = newSessionId();
+
 async function ask({ text, blob, filename }) {
   if (busy) return;
   stopPlayback();
@@ -249,12 +256,13 @@ async function ask({ text, blob, filename }) {
       const form = new FormData();
       form.append("file", blob, filename);
       form.append("speak", String(voiceOn));
+      form.append("session_id", sessionId);
       res = await fetch("/api/ask/audio", { method: "POST", body: form });
     } else {
       res = await fetch("/api/ask/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, speak: voiceOn }),
+        body: JSON.stringify({ text, speak: voiceOn, session_id: sessionId }),
       });
     }
     const data = await res.json().catch(() => ({}));
@@ -310,6 +318,7 @@ function addAssistantMessage() {
 
 const ICON_TOOL = '<svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>';
 const ICON_CHEVRON = '<svg class="icon tool-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
+const ICON_CONTEXT = '<svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
 const ICON_PLAY = '<svg class="icon" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
 
 function renderAnswer(li, data) {
@@ -335,6 +344,13 @@ function renderAnswer(li, data) {
   const meta = $(".meta", li);
   meta.append(chip(data.language_label));
   meta.append(chip(data.route === "tool" ? "Used a tool" : "Direct answer", data.route === "tool" ? "route-tool" : ""));
+  const earlier = (data.turns_in_memory || 0) - 1;
+  if (earlier > 0) {
+    const c = chip(`Used context from ${earlier} earlier ${earlier === 1 ? "turn" : "turns"}`, "context");
+    c.insertAdjacentHTML("afterbegin", ICON_CONTEXT);
+    c.title = "Vaak remembers this conversation. Use New chat to start fresh.";
+    meta.append(c);
+  }
   const t = data.timings_ms || {};
   const parts = [["stt", "STT"], ["agent", "Agent"], ["tts", "TTS"]]
     .filter(([k]) => t[k] != null).map(([k, label]) => `${label} ${(t[k] / 1000).toFixed(1)}s`);
@@ -379,6 +395,22 @@ function chip(text, cls = "") {
   s.className = `chip ${cls}`.trim();
   s.textContent = text;
   return s;
+}
+
+function newChat() {
+  if (busy) return;
+  stopRecording(true);
+  stopPlayback();
+  fetch(`/api/session/${sessionId}`, { method: "DELETE" }).catch(() => {});
+  sessionId = newSessionId();
+  els.thread.replaceChildren();
+  for (const atom of atoms) if (!atom.host.isConnected) atoms.delete(atom);
+  document.body.classList.remove("has-thread");
+  setStatus("");
+  els.input.value = "";
+  autoGrow();
+  updateSendButton();
+  els.input.focus();
 }
 
 /* ================= UI helpers ================= */
@@ -436,6 +468,7 @@ els.micBtn.addEventListener("click", () => {
 });
 
 els.attachBtn.addEventListener("click", () => els.fileInput.click());
+els.newChat.addEventListener("click", newChat);
 els.fileInput.addEventListener("change", () => {
   const file = els.fileInput.files[0];
   els.fileInput.value = "";

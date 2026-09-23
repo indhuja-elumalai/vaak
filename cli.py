@@ -9,7 +9,12 @@ Interactive commands:
   <question>        ask by typing
   /audio <path>     ask with an audio file
   /voice on|off     toggle spoken replies
+  /new              start a new conversation (forget earlier turns)
   /quit             exit
+
+The interactive session remembers earlier turns, so follow-ups work:
+  you > 25 kg in pounds?
+  you > and in grams?
 
 If speech-to-text fails, the CLI asks you to type the question instead.
 If text-to-speech fails, the text answer is still printed.
@@ -24,6 +29,7 @@ import sys
 from pathlib import Path
 
 from core.agent_runtime import Agent, load_tools
+from core.conversation import Conversation
 from core.pipeline import PipelineError, TurnResult, VoicePipeline
 from core.tool_registry import ToolRegistry
 
@@ -74,7 +80,8 @@ def ask_audio(pipeline: VoicePipeline, path: str, autoplay: bool, interactive: b
 
 
 def interactive(pipeline: VoicePipeline, autoplay: bool) -> None:
-    print("Vaak — ask by typing, or /audio <path>.  /voice on|off, /quit")
+    pipeline.conversation = Conversation()
+    print("Vaak — ask by typing, or /audio <path>.  /voice on|off, /new, /quit")
     while True:
         try:
             line = input("\nyou > ").strip()
@@ -85,7 +92,10 @@ def interactive(pipeline: VoicePipeline, autoplay: bool) -> None:
             continue
         if line in ("/quit", "/exit"):
             return
-        if line.startswith("/voice"):
+        if line == "/new":
+            pipeline.conversation.clear()
+            print("  started a new conversation")
+        elif line.startswith("/voice"):
             pipeline.speak = line.endswith("on")
             print(f"  spoken replies {'on' if pipeline.speak else 'off'}")
         elif line.startswith("/audio"):

@@ -97,6 +97,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 7px 10px; border-radius: 999px; background: var(--surface-2);
   margin-right: 4px;
 }
+.new-chat {
+  display: none; align-items: center; gap: 6px;
+  height: 34px; padding: 0 12px 0 9px; margin-right: 2px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  font-size: 13px; font-weight: 500; color: var(--text);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.new-chat .icon { width: 16px; height: 16px; }
+.new-chat:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.new-chat:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body.has-thread .new-chat { display: inline-flex; }
 .icon-btn {
   display: grid; place-items: center;
   width: 38px; height: 38px; border-radius: 12px;
@@ -229,6 +240,8 @@ body.has-thread .hero { display: none; }
   background: var(--surface-2); color: var(--muted); font-weight: 500;
 }
 .chip.route-tool { background: var(--accent-soft); color: var(--accent); }
+.chip.context { background: transparent; border: 1px solid var(--border); font-weight: 400; }
+.chip.context .icon { width: 12px; height: 12px; }
 .timing { font-family: var(--mono); font-size: 11.5px; }
 .replay {
   display: inline-flex; align-items: center; gap: 5px;
@@ -309,6 +322,8 @@ body[data-state="listening"] .mic-btn .icon-stop { display: block; fill: current
 /* ---------- Small screens ---------- */
 @media (max-width: 600px) {
   .brand-tag, .model-pill { display: none; }
+  .new-chat span { display: none; }
+  .new-chat { padding: 0 9px; }
   .suggestions { grid-template-columns: 1fr; }
   .atom-lg { width: 128px; height: 128px; }
   .msg.user .bubble { max-width: 88%; }
