@@ -6,7 +6,7 @@ A voice-first agent that answers questions by deciding, per query, whether to re
 
 Most "voice AI" demos are a thin STT→LLM→TTS wrapper: they sound impressive but never actually *do* anything — every answer is generated text, nothing is verified, nothing is measured. Two separate problems get conflated as one:
 
-1. **Voice as an interface** — accurately transcribing and synthesizing natural (including Hindi/English code-mixed) speech.
+1. **Voice as an interface** — accurately transcribing and synthesizing natural (including Hindi/Tamil/English code-mixed) speech.
 2. **Agentic decision-making** — knowing when a query needs a deterministic tool (a calculation, a lookup, an API call) versus when a direct language-model answer is correct and sufficient, and being able to prove that decision was right.
 
 Almost no project at the "quick demo" level treats problem 2 as a real engineering problem with a measurable answer — accuracy, task-completion rate, and latency get asserted, not shown.
@@ -19,7 +19,7 @@ Vaak is a small, deliberately reusable **voice + agent runtime** with a hard bou
 
 It ships with an evaluation harness that scores every run against a fixed test set — transcript accuracy, correct tool-vs-direct-answer decisions, and end-to-end latency — so quality claims are backed by numbers, not vibes.
 
-**Today's demo domain:** a study-helper voice agent that answers questions in Hindi/English/code-mixed speech, using three tools (`calculate`, `convert_units`, `lookup_formula`) where appropriate, and direct LLM answers otherwise.
+**Today's demo domain:** a study-helper voice agent that answers questions in Hindi/Tamil/English/code-mixed speech, using three tools (`calculate`, `convert_units`, `lookup_formula`) where appropriate, and direct LLM answers otherwise.
 
 ## Architecture
 
@@ -27,7 +27,7 @@ It ships with an evaluation harness that scores every run against a fixed test s
  Voice/text input
         │
         ▼
-   io/stt.py  ──────►  transcript
+   voice_io/stt.py ──────►  transcript
         │
         ▼
  core/agent_runtime.py
@@ -36,13 +36,13 @@ It ships with an evaluation harness that scores every run against a fixed test s
    └── calls into tools/*.py (domain-specific, pluggable)
         │
         ▼
-   io/tts.py  ──────►  spoken response
+   voice_io/tts.py ──────►  spoken response
         │
         ▼
  eval/eval_runner.py (scores against eval/*.json test sets)
 ```
 
-**Design rule:** `core/` and `io/` never import from `tools/`. Tools register themselves with the runtime. This is what makes the runtime reusable across domains without rewrites — see "Future integration" below.
+**Design rule:** `core/` and `voice_io/` never import from `tools/`. Tools register themselves with the runtime. This is what makes the runtime reusable across domains without rewrites — see "Future integration" below.
 
 ## Tech Stack
 
@@ -62,7 +62,7 @@ vaak/
   core/
     agent_runtime.py      # input → intent → tool-or-direct → output loop
     tool_registry.py      # register_tool(name, schema, handler)
-  io/
+  voice_io/               # named voice_io, not io: a local `io` package collides with the Python stdlib
     stt.py                 # speech-to-text wrapper
     tts.py                 # text-to-speech wrapper
   tools/
@@ -80,7 +80,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 
 | Branch | Goal | Manual test before merge |
 |---|---|---|
-| `feat/stt-io` | STT + TTS wrappers working round-trip | Run `io/stt.py` on a sample audio file → transcript printed correctly. Run `io/tts.py` on sample text → audio file produced and playable. |
+| `feat/stt-io` | STT + TTS wrappers working round-trip | Run `python -m voice_io.stt` on a sample audio file → transcript printed correctly. Run `python -m voice_io.tts` on sample text → audio file produced and playable. |
 | `feat/agent-core` | Agent decides direct-answer vs tool-call correctly | Run `core/agent_runtime.py` on 5–10 hardcoded text queries → confirm each routes to the correct tool or direct answer by manual inspection. |
 | `feat/full-loop` | STT → agent → TTS wired end to end | Speak/upload one query → hear a correct spoken response, no crashes. Confirm text-only fallback path also works. |
 | `feat/eval-harness` | Eval script scores the full pipeline | Run `eval/eval_runner.py` against `study_eval_set.json` → a results table prints with accuracy, task-completion rate, and latency per query. |
@@ -88,7 +88,7 @@ Each branch below must pass its own manual test checklist before merging to `mai
 
 ## Progress Tracker
 
-- [ ] `feat/stt-io` merged
+- [x] `feat/stt-io` merged
 - [ ] `feat/agent-core` merged
 - [ ] `feat/full-loop` merged
 - [ ] `feat/eval-harness` merged
@@ -104,7 +104,7 @@ python eval/eval_runner.py   # run the eval suite
 
 ## Future integration
 
-The `core/` runtime is domain-agnostic by design. A future `tools/*.py` file (e.g. tools that call into a separate project's API) can be registered without touching `core/` or `io/` at all — the voice+agent+eval infrastructure built here is meant to be reused, not rebuilt, for any future project that needs a natural-language front end over real actions.
+The `core/` runtime is domain-agnostic by design. A future `tools/*.py` file (e.g. tools that call into a separate project's API) can be registered without touching `core/` or `voice_io/` at all — the voice+agent+eval infrastructure built here is meant to be reused, not rebuilt, for any future project that needs a natural-language front end over real actions.
 
 ## License
 
