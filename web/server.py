@@ -99,6 +99,16 @@ def serialize(turn: TurnResult, conversation: Conversation | None) -> dict:
         "tool_calls": [{"name": c.name, "arguments": c.arguments, "result": c.result} for c in a.tool_calls],
         "model": a.model,
         "timings_ms": {k: round(v) for k, v in turn.timings_ms.items()},
+        "grounding": (
+            {"verdict": a.grounding.verdict, "checked": a.grounding.checked,
+             "unsupported": a.grounding.unsupported, "draft_answer": a.draft_answer}
+            if a.grounding else None
+        ),
+        "trace": [
+            {"kind": s.kind, "label": s.label, "detail": s.detail,
+             "start_ms": round(s.start_ms), "duration_ms": round(s.duration_ms), "error": s.error}
+            for s in turn.trace
+        ],
         "audio_url": f"/api/audio/{turn.speech.path.name}" if turn.speech else None,
         "errors": turn.errors,
     }

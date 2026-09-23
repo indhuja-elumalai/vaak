@@ -319,6 +319,9 @@ function addAssistantMessage() {
 const ICON_TOOL = '<svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>';
 const ICON_CHEVRON = '<svg class="icon tool-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
 const ICON_CONTEXT = '<svg class="icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>';
+const ICON_CHECK = '<svg class="icon" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const ICON_ALERT = '<svg class="icon" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>';
+const ICON_STEPS = '<svg class="icon" viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/></svg>';
 const ICON_PLAY = '<svg class="icon" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
 
 function renderAnswer(li, data) {
@@ -344,6 +347,8 @@ function renderAnswer(li, data) {
   const meta = $(".meta", li);
   meta.append(chip(data.language_label));
   meta.append(chip(data.route === "tool" ? "Used a tool" : "Direct answer", data.route === "tool" ? "route-tool" : ""));
+  const g = data.grounding;
+  if (g) meta.append(verificationChip(g));
   const earlier = (data.turns_in_memory || 0) - 1;
   if (earlier > 0) {
     const c = chip(`Used context from ${earlier} earlier ${earlier === 1 ? "turn" : "turns"}`, "context");
@@ -369,12 +374,68 @@ function renderAnswer(li, data) {
     meta.append(btn);
   }
 
+  if (data.trace?.length) $(".body", li).insertBefore(renderTrace(data), $(".warn", li));
+
   if (data.errors?.length) {
     const warn = $(".warn", li);
     warn.hidden = false;
     warn.textContent = "Couldn't generate the spoken reply, so here's the text.";
     warn.title = data.errors.join("\n");
   }
+}
+
+const VERDICTS = {
+  verified:   { cls: "verified",   icon: ICON_CHECK, text: "Verified against tools",
+                tip: "Every number in this answer matches a tool result." },
+  corrected:  { cls: "verified",   icon: ICON_CHECK, text: "Corrected to match tools",
+                tip: "The first draft had a number no tool produced; Vaak rewrote it. See the steps below." },
+  flagged:    { cls: "flagged",    icon: ICON_ALERT, text: "Numbers not verified",
+                tip: "Some numbers don't match any tool result, even after a rewrite." },
+  unverified: { cls: "unverified", icon: "",         text: "Not verified",
+                tip: "A direct answer from the model. No tool result to check it against." },
+};
+
+function verificationChip(g) {
+  const v = VERDICTS[g.verdict] || VERDICTS.unverified;
+  const c = chip(g.verdict === "flagged" && g.unsupported.length
+    ? `${v.text}: ${g.unsupported.join(", ")}` : v.text, v.cls);
+  if (v.icon) c.insertAdjacentHTML("afterbegin", v.icon);
+  c.title = v.tip;
+  return c;
+}
+
+function renderTrace(data) {
+  const steps = data.trace;
+  const total = Math.max(1, ...steps.map(s => s.start_ms + s.duration_ms));
+  const d = document.createElement("details");
+  d.className = "trace";
+  d.innerHTML = `<summary>${ICON_STEPS}<span>How Vaak answered</span><strong></strong>${ICON_CHEVRON}</summary><ol class="steps"></ol>`;
+  $("strong", d).textContent = `${steps.length} steps · ${(total / 1000).toFixed(1)}s`;
+  const list = $(".steps", d);
+  for (const s of steps) {
+    const li = document.createElement("li");
+    li.className = `step k-${s.kind}${s.error ? " error" : ""}`;
+    li.innerHTML = `<span class="step-dot"></span><span><span class="step-label"></span><span class="step-detail"></span></span><span class="step-bar"><i></i></span><span class="step-ms"></span>`;
+    $(".step-label", li).textContent = s.label;
+    $(".step-detail", li).textContent = s.detail;
+    $(".step-detail", li).title = s.detail;
+    const bar = $(".step-bar i", li);
+    bar.style.left = `${(s.start_ms / total) * 100}%`;
+    bar.style.width = `${(s.duration_ms / total) * 100}%`;
+    $(".step-ms", li).textContent = s.duration_ms < 1000 ? `${s.duration_ms}ms` : `${(s.duration_ms / 1000).toFixed(1)}s`;
+    list.append(li);
+  }
+  const draft = data.grounding?.draft_answer;
+  if (draft) {
+    const p = document.createElement("p");
+    p.className = "draft";
+    p.append("First draft (rejected): ");
+    const struck = document.createElement("s");
+    struck.textContent = draft;
+    p.append(struck);
+    list.append(p);
+  }
+  return d;
 }
 
 function renderError(li, message) {

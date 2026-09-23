@@ -12,6 +12,7 @@
   --accent-2: #19b4c8;
   --accent-soft: color-mix(in oklab, var(--accent) 12%, transparent);
   --danger: #dc3d43;
+  --ok: #1a8f5a;
   --user-bubble: #efede6;
   --shadow: 0 1px 2px rgb(20 18 12 / 0.04), 0 8px 28px rgb(20 18 12 / 0.07);
   --radius: 22px;
@@ -33,6 +34,7 @@
     --faint: #75736b;
     --accent: #8d7cff;
     --accent-2: #37cadc;
+    --ok: #45c48a;
     --user-bubble: #262521;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 32px rgb(0 0 0 / 0.35);
     color-scheme: dark;
@@ -49,6 +51,7 @@
   --faint: #75736b;
   --accent: #8d7cff;
   --accent-2: #37cadc;
+  --ok: #45c48a;
   --user-bubble: #262521;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 32px rgb(0 0 0 / 0.35);
   color-scheme: dark;
@@ -241,6 +244,54 @@ body.has-thread .hero { display: none; }
 }
 .chip.route-tool { background: var(--accent-soft); color: var(--accent); }
 .chip.context { background: transparent; border: 1px solid var(--border); font-weight: 400; }
+.chip .icon { width: 12px; height: 12px; stroke-width: 2.4; }
+.chip.verified { background: color-mix(in oklab, var(--ok) 13%, transparent); color: var(--ok); }
+.chip.flagged { background: color-mix(in oklab, var(--danger) 13%, transparent); color: var(--danger); }
+.chip.unverified { background: transparent; border: 1px dashed var(--border-strong); font-weight: 400; }
+
+/* ---------- Trace timeline ---------- */
+.trace {
+  margin-top: 12px; max-width: 620px;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface);
+}
+.trace summary {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; font-size: 12.5px; color: var(--muted);
+}
+.trace summary::-webkit-details-marker { display: none; }
+.trace summary .icon { width: 15px; height: 15px; }
+.trace summary strong { color: var(--text); font-weight: 500; }
+.trace[open] .tool-chevron { transform: rotate(90deg); }
+.steps { list-style: none; margin: 0; padding: 4px 12px 12px; border-top: 1px solid var(--border); }
+.step {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr) 34% 52px;
+  gap: 10px; align-items: center; padding: 7px 0; font-size: 12.5px;
+}
+.step + .step { border-top: 1px dashed var(--border); }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--k, var(--accent)); justify-self: center; }
+.step-label { color: var(--text); font-weight: 500; }
+.step-detail {
+  display: block; color: var(--faint); font: 11.5px/1.4 var(--mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.step-bar { position: relative; height: 6px; border-radius: 3px; background: var(--surface-2); }
+.step-bar i {
+  position: absolute; top: 0; bottom: 0; min-width: 3px; border-radius: 3px;
+  background: var(--k, var(--accent));
+}
+.step-ms { text-align: right; font: 11.5px var(--mono); color: var(--muted); }
+.step.k-stt, .step.k-tts { --k: var(--accent-2); }
+.step.k-llm { --k: var(--accent); }
+.step.k-tool { --k: color-mix(in oklab, var(--accent) 55%, var(--accent-2)); }
+.step.k-check { --k: var(--ok); }
+.step.error { --k: var(--danger); }
+.step.error .step-label { color: var(--danger); }
+.draft {
+  margin: 4px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--surface-2);
+  font-size: 12.5px; color: var(--muted);
+}
+.draft s { text-decoration-color: var(--danger); }
 .chip.context .icon { width: 12px; height: 12px; }
 .timing { font-family: var(--mono); font-size: 11.5px; }
 .replay {
@@ -323,6 +374,8 @@ body[data-state="listening"] .mic-btn .icon-stop { display: block; fill: current
 @media (max-width: 600px) {
   .brand-tag, .model-pill { display: none; }
   .new-chat span { display: none; }
+  .step { grid-template-columns: 14px minmax(0, 1fr) 52px; }
+  .step-bar { display: none; }
   .new-chat { padding: 0 9px; }
   .suggestions { grid-template-columns: 1fr; }
   .atom-lg { width: 128px; height: 128px; }

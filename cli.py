@@ -54,6 +54,12 @@ def show(turn: TurnResult, autoplay: bool) -> None:
     route = "tool" if turn.agent.tool_calls else "direct"
     print(f"  route   : {route}   (reply language: {turn.agent.reply_language})")
     print(f"  answer  : {turn.answer}")
+    g = turn.agent.grounding
+    if g:
+        extra = f" (unsupported: {', '.join(g.unsupported)})" if g.unsupported else ""
+        print(f"  check   : {g.verdict}{extra}")
+        if turn.agent.draft_answer:
+            print(f"  draft   : {turn.agent.draft_answer}")
     timings = "  ".join(f"{k} {v:.0f}ms" for k, v in turn.timings_ms.items())
     print(f"  timing  : {timings}")
     for err in turn.errors:
