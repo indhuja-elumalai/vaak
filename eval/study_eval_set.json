@@ -1,6 +1,6 @@
 {
   "name": "study_eval_set",
-  "version": 3,
+  "version": 4,
   "description": "Study-helper eval: tool routing, answer correctness, grounding and latency across English, Hindi/Hinglish and Tamil/Tanglish, single-turn and follow-ups.",
   "scoring": {
     "expect_route": "acceptable routes for the turn: a tool name (must be called) or \"direct\" (no tool calls). Any one listed route passes.",
@@ -102,13 +102,13 @@
      "turns": [{"query": "37 डिग्री सेल्सियस को फ़ारेनहाइट में बदलो", "expect_route": ["convert_units"], "expect_values": [98.6]}]},
 
     {"id": "formula-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
-     "turns": [{"query": "न्यूटन के दूसरे नियम का सूत्र क्या है?", "expect_route": ["lookup_formula"], "expect_text": ["f=ma", "f=m*a", "f=m×a", "f=m·a", "f=mxa"]}]},
+     "turns": [{"query": "न्यूटन के दूसरे नियम का सूत्र क्या है?", "expect_route": ["lookup_formula"], "expect_text": ["f=ma", "f=m*a", "f=m×a", "f=m·a", "f=mxa", "fबराबरmगुणाa", "बल=द्रव्यमान×त्वरण", "बलबराबरद्रव्यमानगुणात्वरण"]}]},
 
     {"id": "direct-hi", "language": "Hindi", "category": "direct", "voice": "hi-IN",
      "turns": [{"query": "भारत की राजधानी क्या है?", "expect_route": ["direct"], "expect_text": ["दिल्ली", "delhi"]}]},
 
     {"id": "fact-hi", "language": "Hindi", "category": "direct-fact", "voice": "hi-IN",
-     "turns": [{"query": "पृथ्वी सूर्य का एक चक्कर कितने दिनों में लगाती है?", "expect_route": ["direct"], "expect_values": [365]}]},
+     "turns": [{"query": "पृथ्वी सूर्य का एक चक्कर कितने दिनों में लगाती है?", "expect_route": ["direct"], "expect_values": [365, 365.25]}]},
 
     {"id": "followup-hi", "language": "Hindi", "category": "follow-up", "voice": "hi-IN",
      "turns": [
