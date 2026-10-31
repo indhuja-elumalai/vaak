@@ -1,5 +1,7 @@
 # Vaak
 
+[![CI](https://github.com/indhuja-elumalai/vaak/actions/workflows/ci.yml/badge.svg)](https://github.com/indhuja-elumalai/vaak/actions/workflows/ci.yml)
+
 A voice-first agent that answers questions by deciding, per query, whether to reason directly or call a real tool — built as a reusable voice+agent runtime, demonstrated first on a study-Q&A use case.
 
 ## Problem Statement
@@ -50,7 +52,7 @@ It ships with an evaluation harness that scores every run against a fixed test s
 |---|---|
 | Language | Python |
 | STT / TTS | Sarvam AI API (Indian language/accent support), fallback: OpenAI Whisper + TTS API |
-| Agent / tool-calling | Sarvam `sarvam-105b` (OpenAI-compatible function calling), switchable to OpenAI via `VAAK_LLM_PROVIDER` |
+| Agent / tool-calling | Sarvam `sarvam-105b-conversations` (OpenAI-compatible function calling), chosen by the eval's model comparison; switchable via `SARVAM_LLM_MODEL` / `VAAK_LLM_PROVIDER` |
 | Web UI | FastAPI + plain HTML/CSS/JS (no framework, no build step) |
 | Eval | Custom lightweight script (`eval/eval_runner.py`), no heavy framework |
 | Dev environment | Local script / Colab notebook |
@@ -72,8 +74,12 @@ vaak/
   tools/
     study_tools.py         # calculate(), convert_units(), lookup_formula()
   eval/
-    eval_runner.py         # scoring harness
-    study_eval_set.json    # today's test cases
+    eval_runner.py         # scoring harness (text + voice modes, model comparison, CI gate)
+    scoring.py             # pure scoring functions (routing, completion, WER, percentiles)
+    study_eval_set.json    # 22 cases / 26 turns: tools, formula+calc, impossible, direct facts, follow-ups
+    results/latest.json    # last full eval report
+  tests/                   # offline unit tests (tools, grounding, language, memory, scoring)
+  .github/workflows/ci.yml # unit tests on every PR + live eval gate when SARVAM_API_KEY is set
   smoke_agent.py           # routing (13), --followups (4), --grounding (4) checks
   cli.py                   # wires everything together for the demo
   web/
@@ -117,7 +123,9 @@ python cli.py                              # interactive: type, or /audio <path>
 python cli.py --audio samples/question.m4a # spoken question from a file
 python cli.py --text "37 times 48?" --text-only
 python -m web.server                       # web app at http://localhost:8765
-python eval/eval_runner.py   # run the eval suite
+python eval/eval_runner.py                 # full eval: text + voice, prints tables, saves eval/results/latest.json
+python eval/eval_runner.py --mode text --models sarvam-105b,sarvam-105b-conversations   # model comparison
+python -m pytest -q                        # offline unit tests (pip install -r requirements-dev.txt)
 ```
 
 ## Future integration
