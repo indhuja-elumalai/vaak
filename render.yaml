@@ -1,0 +1,28 @@
+# Render Blueprint: New → Blueprint → pick this repo. See docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: vaak
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Secrets: Render asks for these values when you create the Blueprint. Never commit them.
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Low limits keep a public demo inside a student budget. Raise them if you need to.
+      - key: VAAK_RATE_LIMIT_PER_MIN
+        value: "5"
+      - key: VAAK_RATE_LIMIT_PER_DAY
+        value: "30"
+      - key: VAAK_DAILY_CAP_TOTAL
+        value: "100"
+      - key: VAAK_TRUST_PROXY
+        value: "1"
+      - key: VAAK_AUDIO_TTL_MIN
+        value: "30"
+      - key: VAAK_AUDIO_MAX_FILES
+        value: "200"

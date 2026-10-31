@@ -1,15 +1,16 @@
 {
   "name": "study_eval_set",
-  "version": 2,
+  "version": 4,
   "description": "Study-helper eval: tool routing, answer correctness, grounding and latency across English, Hindi/Hinglish and Tamil/Tanglish, single-turn and follow-ups.",
   "scoring": {
     "expect_route": "acceptable routes for the turn: a tool name (must be called) or \"direct\" (no tool calls). Any one listed route passes.",
     "expect_values": "task completion: some number in the answer must equal one of these, allowing rounding (55.12 matches 55.1156).",
-    "expect_text": "task completion: the answer must contain one of these (case-insensitive, spaces ignored)."
+    "expect_text": "task completion: the answer must contain one of these (case-insensitive, spaces ignored).",
+    "audio": "optional, per turn: a recorded question under eval/audio/. Voice mode uses it when the file exists, otherwise it synthesizes the question with TTS."
   },
   "cases": [
     {"id": "calc-en", "language": "English", "category": "tool", "voice": "en-IN",
-     "turns": [{"query": "What is 37 times 48?", "expect_route": ["calculate"], "expect_values": [1776]}]},
+     "turns": [{"query": "What is 37 times 48?", "audio": "eval/audio/en_calc.m4a", "expect_route": ["calculate"], "expect_values": [1776]}]},
 
     {"id": "calc-hinglish", "language": "Hinglish", "category": "tool", "voice": "hi-IN",
      "turns": [{"query": "144 ka square root kya hai?", "expect_route": ["calculate"], "expect_values": [12]}]},
@@ -21,13 +22,13 @@
      "turns": [{"query": "What is 15% of 240?", "expect_route": ["calculate"], "expect_values": [36]}]},
 
     {"id": "convert-hinglish", "language": "Hinglish", "category": "tool", "voice": "hi-IN",
-     "turns": [{"query": "5 kilometer ko miles mein convert karo", "expect_route": ["convert_units"], "expect_values": [3.10686]}]},
+     "turns": [{"query": "5 kilometer ko miles mein convert karo", "audio": "eval/audio/hinglish_convert.m4a", "expect_route": ["convert_units"], "expect_values": [3.10686]}]},
 
     {"id": "convert-temp-en", "language": "English", "category": "tool", "voice": "en-IN",
      "turns": [{"query": "100 degree Fahrenheit is how much in Celsius?", "expect_route": ["convert_units"], "expect_values": [37.7778]}]},
 
     {"id": "convert-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
-     "turns": [{"query": "25 கிலோகிராம் எத்தனை பவுண்டு?", "expect_route": ["convert_units"], "expect_values": [55.1156]}]},
+     "turns": [{"query": "25 கிலோகிராம் எத்தனை பவுண்டு?", "audio": "eval/audio/ta_convert.m4a", "expect_route": ["convert_units"], "expect_values": [55.1156]}]},
 
     {"id": "convert-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
      "turns": [{"query": "100 kilometer-ah miles-la convert pannu", "expect_route": ["convert_units"], "expect_values": [62.1371]}]},
@@ -36,7 +37,7 @@
      "turns": [{"query": "Kinetic energy ka formula kya hai?", "expect_route": ["lookup_formula"], "expect_text": ["1/2", "0.5", "½", "half", "आधा"]}]},
 
     {"id": "formula-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
-     "turns": [{"query": "Ohm's law formula enna?", "expect_route": ["lookup_formula"], "expect_text": ["v=i*r", "v=i×r", "v=ir", "v=i·r", "v=ixr", "v=itimesr", "vequalsitimesr", "vequalsi*r", "vequalsir", "vequalsiintor"]}]},
+     "turns": [{"query": "Ohm's law formula enna?", "audio": "eval/audio/tanglish_formula.m4a", "expect_route": ["lookup_formula"], "expect_text": ["v=i*r", "v=i×r", "v=ir", "v=i·r", "v=ixr", "v=itimesr", "vequalsitimesr", "vequalsi*r", "vequalsir", "vequalsiintor"]}]},
 
     {"id": "formula-calc-hinglish", "language": "Hinglish", "category": "formula+calc", "voice": "hi-IN",
      "turns": [{"query": "Radius 7 cm wale circle ka area kitna hoga?", "expect_route": ["calculate"], "expect_values": [153.938]}]},
@@ -64,8 +65,8 @@
 
     {"id": "followup-en", "language": "English", "category": "follow-up", "voice": "en-IN",
      "turns": [
-       {"query": "25 kg in pounds?", "expect_route": ["convert_units"], "expect_values": [55.1156]},
-       {"query": "and in grams?", "expect_route": ["convert_units"], "expect_values": [25000]}
+       {"query": "25 kg in pounds?", "audio": "eval/audio/en_followup_1.m4a", "expect_route": ["convert_units"], "expect_values": [55.1156]},
+       {"query": "and in grams?", "audio": "eval/audio/en_followup_2.m4a", "expect_route": ["convert_units"], "expect_values": [25000]}
      ]},
 
     {"id": "followup-hinglish", "language": "Hinglish", "category": "follow-up", "voice": "hi-IN",
@@ -84,6 +85,68 @@
      "turns": [
        {"query": "Who wrote India's national anthem?", "expect_route": ["direct"], "expect_text": ["tagore"]},
        {"query": "When was he born?", "expect_route": ["direct"], "expect_values": [1861]}
+     ]},
+    {"id": "formula-en", "language": "English", "category": "tool", "voice": "en-IN",
+     "turns": [{"query": "What is the formula for the area of a triangle?", "expect_route": ["lookup_formula"], "expect_text": ["1/2", "0.5", "½", "half"]}]},
+
+    {"id": "calc-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "23 गुणा 17 कितना होता है?", "expect_route": ["calculate"], "expect_values": [391]}]},
+
+    {"id": "percent-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "480 का 25 प्रतिशत कितना है?", "audio": "eval/audio/hi_percent.m4a", "expect_route": ["calculate"], "expect_values": [120]}]},
+
+    {"id": "convert-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "3 किलोमीटर में कितने मीटर होते हैं?", "expect_route": ["convert_units"], "expect_values": [3000]}]},
+
+    {"id": "convert-temp-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "37 डिग्री सेल्सियस को फ़ारेनहाइट में बदलो", "expect_route": ["convert_units"], "expect_values": [98.6]}]},
+
+    {"id": "formula-hi", "language": "Hindi", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "न्यूटन के दूसरे नियम का सूत्र क्या है?", "expect_route": ["lookup_formula"], "expect_text": ["f=ma", "f=m*a", "f=m×a", "f=m·a", "f=mxa", "fबराबरmगुणाa", "बल=द्रव्यमान×त्वरण", "बलबराबरद्रव्यमानगुणात्वरण"]}]},
+
+    {"id": "direct-hi", "language": "Hindi", "category": "direct", "voice": "hi-IN",
+     "turns": [{"query": "भारत की राजधानी क्या है?", "expect_route": ["direct"], "expect_text": ["दिल्ली", "delhi"]}]},
+
+    {"id": "fact-hi", "language": "Hindi", "category": "direct-fact", "voice": "hi-IN",
+     "turns": [{"query": "पृथ्वी सूर्य का एक चक्कर कितने दिनों में लगाती है?", "expect_route": ["direct"], "expect_values": [365, 365.25]}]},
+
+    {"id": "followup-hi", "language": "Hindi", "category": "follow-up", "voice": "hi-IN",
+     "turns": [
+       {"query": "10 किलोग्राम कितने पाउंड होते हैं?", "expect_route": ["convert_units"], "expect_values": [22.0462]},
+       {"query": "और ग्राम में?", "expect_route": ["convert_units"], "expect_values": [10000]}
+     ]},
+
+    {"id": "followup-calc-hinglish", "language": "Hinglish", "category": "follow-up", "voice": "hi-IN",
+     "turns": [
+       {"query": "12 ka square kitna hai?", "expect_route": ["calculate"], "expect_values": [144]},
+       {"query": "Aur cube kitna hoga?", "expect_route": ["calculate"], "expect_values": [1728]}
+     ]},
+
+    {"id": "percent-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "500 இல் 20 சதவீதம் என்ன?", "expect_route": ["calculate"], "expect_values": [100]}]},
+
+    {"id": "convert-temp-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "30 டிகிரி செல்சியஸ் எத்தனை ஃபாரன்ஹீட்?", "expect_route": ["convert_units"], "expect_values": [86]}]},
+
+    {"id": "formula-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "இயக்க ஆற்றலின் சூத்திரம் என்ன?", "expect_route": ["lookup_formula"], "expect_text": ["1/2", "0.5", "½", "half", "பாதி"]}]},
+
+    {"id": "fact-ta", "language": "Tamil", "category": "direct-fact", "voice": "ta-IN",
+     "turns": [{"query": "மனித உடலில் எத்தனை எலும்புகள் உள்ளன?", "expect_route": ["direct"], "expect_values": [206]}]},
+
+    {"id": "calc-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "45 times 12 evlo?", "expect_route": ["calculate"], "expect_values": [540]}]},
+
+    {"id": "percent-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "800 la 15 percent evlo?", "expect_route": ["calculate"], "expect_values": [120]}]},
+
+    {"id": "direct-tanglish", "language": "Tanglish", "category": "direct", "voice": "ta-IN",
+     "turns": [{"query": "Gravity na enna? Simple-ah sollu", "expect_route": ["direct"], "expect_text": ["mass", "attract", "earth", "pull", "ஈர்ப்பு"]}]},
+
+    {"id": "followup-tanglish", "language": "Tanglish", "category": "follow-up", "voice": "ta-IN",
+     "turns": [
+       {"query": "2 hours-ah minutes-la convert pannu", "expect_route": ["convert_units", "calculate"], "expect_values": [120]},
+       {"query": "Seconds-la evlo?", "expect_route": ["convert_units", "calculate"], "expect_values": [7200]}
      ]}
   ]
 }

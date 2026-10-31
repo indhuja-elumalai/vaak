@@ -2,6 +2,7 @@
 
   python -m web.server            # http://localhost:8765
   python -m web.server --port 9000
+  HOST=0.0.0.0 PORT=7860 python -m web.server   # host/port from the environment (deployments)
 
 Endpoints:
   GET  /                    the app
@@ -10,6 +11,10 @@ Endpoints:
   POST /api/ask/audio       multipart: file=<audio>, speak=true|false, session_id=..., language=unknown|en-IN|hi-IN|ta-IN
   DELETE /api/session/<id>  forget a conversation ("New chat")
   GET  /api/audio/<name>    a synthesized reply (WAV)
+  GET  /health              liveness check for hosting platforms
+
+Optional safeguards for a public deployment (rate limits on /api/ask/*, deleting old reply
+audio) are configured by environment variables and off by default; see web/ops.py.
 
 Each browser tab sends a session_id; turns with the same id share conversation memory,
 so follow-up questions work. Without a session_id every question stands alone.
@@ -17,11 +22,12 @@ so follow-up questions work. Without a session_id every question stands alone.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -30,6 +36,7 @@ from core.agent_runtime import LANGUAGE_NAMES, SUPPORTED_LANGUAGES, Agent, detec
 from core.conversation import Conversation, ConversationStore
 from core.pipeline import PipelineError, TurnResult, UnsupportedLanguageError, VoicePipeline
 from core.tool_registry import ToolRegistry
+from web.ops import AudioJanitor, RateLimiter, client_ip, env_int
 
 TOOLS_MODULE = "tools.study_tools"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -51,6 +58,25 @@ registry = ToolRegistry()
 agent = Agent(registry, system_prompt=load_tools(TOOLS_MODULE, registry))
 sessions = ConversationStore()
 app = FastAPI(title="Vaak")
+limiter = RateLimiter.from_env()
+janitor = AudioJanitor.from_env(OUT_DIR)
+TRUSTED_PROXIES = env_int("VAAK_TRUST_PROXY")
+
+
+@app.middleware("http")
+async def safeguards(request: Request, call_next):
+    """Opt-in rate limiting and reply-audio cleanup for /api/ask/*; no-ops unless configured."""
+    if request.url.path.startswith("/api/ask/"):
+        ip = client_ip(request.client.host if request.client else None,
+                       request.headers.get("x-forwarded-for"), TRUSTED_PROXIES)
+        decision = limiter.check(ip)
+        if not decision.allowed:
+            return JSONResponse(
+                {"error": decision.message, "stage": "rate_limit", "retry_after": decision.retry_after_s},
+                status_code=429, headers={"Retry-After": str(decision.retry_after_s)},
+            )
+        janitor.maybe_run()
+    return await call_next(request)
 
 
 class TextQuery(BaseModel):
@@ -191,6 +217,11 @@ def audio(name: str) -> FileResponse:
     return FileResponse(path, media_type="audio/wav")
 
 
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
@@ -198,8 +229,8 @@ def main() -> None:
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Run the Vaak web app")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8765")))
     args = parser.parse_args()
     shown = "localhost" if args.host == "127.0.0.1" else args.host
     print(f"Vaak running at http://{shown}:{args.port}  (Ctrl+C to stop)")

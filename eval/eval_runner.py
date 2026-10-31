@@ -2,19 +2,23 @@
 
 For every case (one or more turns sharing a conversation) and every mode:
   text   the question goes straight to the agent
-  voice  the question is synthesized with TTS, then STT -> agent -> TTS (the real loop)
+  voice  STT -> agent -> TTS (the real loop) on a recorded question from eval/audio/
+         when the turn has one, otherwise on the question synthesized with TTS
 
 Scores per turn: routing (right tool or direct), task completion (correct final
 answer), grounding verdict, latency, and in voice mode transcript word error rate.
+Every score is also broken down by language.
 
   python eval/eval_runner.py                          # both modes, configured model
   python eval/eval_runner.py --mode text              # faster: text only
+  python eval/eval_runner.py --mode text --limit 5    # first 5 cases only
   python eval/eval_runner.py --models sarvam-105b,sarvam-105b-conversations --mode text
   python eval/eval_runner.py --cases followup-en,fact-en -v
   python eval/eval_runner.py --mode text --min-routing 0.85   # CI gate: exit 1 below threshold
 
-Results are printed as tables and saved to eval/results/latest.json
-(or eval/results/model_comparison.json when comparing several models).
+Results are printed as tables and saved to eval/results/latest-<mode>.json
+(or eval/results/model_comparison.json when comparing several models, or --out),
+plus a readable report at eval/results/<date>-<mode>.md. Text and voice runs keep separate files.
 """
 from __future__ import annotations
 
@@ -71,6 +75,21 @@ class Row:
     transcript: str | None = None
     wer: float | None = None
     error: str | None = None
+    audio_source: str | None = None  # voice mode: "recorded" | "synthetic"
+
+
+AUDIO_EXTENSIONS = (".m4a", ".wav", ".mp3", ".ogg", ".webm", ".flac")
+
+
+def recorded_audio(turn: dict) -> Path | None:
+    """The turn's recorded question, if it has one on disk (any common audio extension)."""
+    if not turn.get("audio"):
+        return None
+    path = ROOT / turn["audio"]
+    for candidate in (path, *(path.with_suffix(ext) for ext in AUDIO_EXTENSIONS)):
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 def query_audio(text: str, voice: str) -> Path:
@@ -88,9 +107,12 @@ def run_case(agent: Agent, case: dict, mode: str) -> list[Row]:
     for i, turn in enumerate(case["turns"], 1):
         base = dict(model=agent.model, mode=mode, case=case["id"], turn=i, language=case["language"],
                     category=case["category"], query=turn["query"], expect_route=turn["expect_route"])
+        recorded = recorded_audio(turn) if mode == "voice" else None
+        if mode == "voice":
+            base["audio_source"] = "recorded" if recorded else "synthetic"
         try:
             if mode == "voice":
-                result = pipeline.run_audio(query_audio(turn["query"], case["voice"]))
+                result = pipeline.run_audio(recorded or query_audio(turn["query"], case["voice"]))
             else:
                 result = pipeline.run_text(turn["query"])
         except Exception as e:  # a failed turn breaks the conversation, so stop the case
@@ -139,6 +161,22 @@ def summarize(rows: list[Row]) -> dict:
             "routing": sum(r.route_ok for r in cr) / len(cr),
             "completion": sum(r.completion_ok for r in cr) / len(cr),
         }
+    by_language = {}
+    for lang in sorted({r.language for r in rows} | {r.language for r in errored}):
+        lr = [r for r in rows if r.language == lang]
+        lt = [r for r in lr if r.tools_used]
+        ll = [r.latency_ms for r in lr if r.latency_ms]
+        by_language[lang] = {
+            "turns": len(lr),
+            "routing": sum(r.route_ok for r in lr) / len(lr) if lr else None,
+            "completion": sum(r.completion_ok for r in lr) / len(lr) if lr else None,
+            "grounded_tool_turns": (
+                sum(r.verdict in ("verified", "corrected") for r in lt) / len(lt) if lt else None
+            ),
+            "latency_p50_ms": statistics.median(ll) if ll else None,
+            "latency_p95_ms": percentile(ll, 95) if ll else None,
+            "errors": sum(r.language == lang for r in errored),
+        }
     return {
         "turns": n,
         "routing_accuracy": sum(r.route_ok for r in rows) / n if n else 0,
@@ -158,6 +196,11 @@ def summarize(rows: list[Row]) -> dict:
         "errors": len(errored),
         "warnings": sum(r.error is not None for r in rows),  # e.g. TTS failed but the answer stands
         "by_category": by_category,
+        "by_language": by_language,
+        "audio_sources": dict(sorted(
+            {src: sum(r.audio_source == src for r in rows) for src in {r.audio_source for r in rows}
+             if src}.items()
+        )),
     }
 
 
@@ -212,6 +255,106 @@ def print_summary(runs: dict[tuple[str, str], dict]) -> None:
         print(f"\n{model} / {mode}: completion by category → {cats}")
         print(f"  checks → verified {v.get('verified', 0)}, corrected {v.get('corrected', 0)}, "
               f"flagged {v.get('flagged', 0)}, unverified {v.get('unverified', 0)}")
+        if s.get("audio_sources"):
+            print("  audio  → " + ", ".join(f"{k} {n}" for k, n in s["audio_sources"].items()))
+        print(f"  {'language':<11}{'scored':>7}{'routing':>9}{'complete':>10}{'grounded':>10}"
+              f"{'p50':>8}{'p95':>8}{'errors':>8}")
+        for lang, b in s["by_language"].items():
+            print(f"  {lang:<11}{b['turns']:>7}{_pct(b['routing']):>9}{_pct(b['completion']):>10}"
+                  f"{_pct(b['grounded_tool_turns']):>10}{_secs(b['latency_p50_ms']):>8}"
+                  f"{_secs(b['latency_p95_ms']):>8}{b['errors']:>8}")
+
+
+# ---------- markdown report ----------
+
+def _md_pct(x: float | None) -> str:
+    return "n/a" if x is None else f"{x * 100:.1f}%"
+
+
+def _md_ms(ms: float | None) -> str:
+    return "n/a" if ms is None else f"{ms:,.0f} ms"
+
+
+def _md_cell(text: str, n: int = 90) -> str:
+    return _cut(text, n).replace("|", "\\|")
+
+
+def render_markdown(report: dict) -> str:
+    """A human-readable report of one eval run (numbers exactly as measured, one decimal)."""
+    out = [
+        f"# Vaak eval report — {report['run_at'][:10]}",
+        "",
+        f"- Eval set: `{report['eval_set']}` v{report['eval_set_version']}"
+        f" ({report['cases']} cases, {report['turns_in_set']} turns)",
+        f"- Run at: {report['run_at']} (UTC), commit `{report['git_commit'] or 'unknown'}`",
+        f"- Modes: {', '.join(report['modes'])}",
+        "",
+        "## Summary",
+        "",
+        "| Model | Mode | Scored turns | Routing | Task completion | Grounded tool answers |"
+        " Latency p50 | Latency p95 | Errors |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for s in report["summary"]:
+        out.append(
+            f"| {s['model']} | {s['mode']} | {s['turns']} | {_md_pct(s['routing_accuracy'])} |"
+            f" {_md_pct(s['task_completion'])} | {_md_pct(s['grounded_tool_turns'])} |"
+            f" {_md_ms(s['latency_ms']['p50'])} | {_md_ms(s['latency_ms']['p95'])} | {s['errors']} |"
+        )
+    for s in report["summary"]:
+        out += [
+            "", f"## By language — {s['model']} / {s['mode']}", "",
+            "| Language | Scored turns | Routing | Task completion | Grounded tool answers |"
+            " Latency p50 | Latency p95 | Errors |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+        for lang, b in s["by_language"].items():
+            out.append(
+                f"| {lang} | {b['turns']} | {_md_pct(b['routing'])} | {_md_pct(b['completion'])} |"
+                f" {_md_pct(b['grounded_tool_turns'])} | {_md_ms(b['latency_p50_ms'])} |"
+                f" {_md_ms(b['latency_p95_ms'])} | {b['errors']} |"
+            )
+        v = s["verdicts"]
+        wer = s["transcript_wer"]
+        out += [
+            "",
+            f"Grounding verdicts: verified {v.get('verified', 0)}, corrected {v.get('corrected', 0)},"
+            f" flagged {v.get('flagged', 0)}, unverified {v.get('unverified', 0)}"
+            " (unverified = direct answers, which have no tool result to check against).",
+        ]
+        if s.get("audio_sources"):
+            out.append("Voice input: " + ", ".join(f"{k} {n}" for k, n in s["audio_sources"].items()) + " turns.")
+        if wer["mean"] is not None:
+            out.append(f"Transcript WER: {wer['mean']:.3f} mean over {wer['comparable_turns']} same-script turns.")
+
+    misses = [r for r in report["rows"] if not (r["route_ok"] and r["completion_ok"])]
+    out += ["", "## Misses", ""]
+    if not misses:
+        out.append("None: every scored turn routed correctly and contained the expected answer.")
+    else:
+        out += ["| Model / mode | Case | Language | Query | Expected route | Got | Done | Answer or error |",
+                "|---|---|---|---|---|---|---|---|"]
+        for r in misses:
+            got = ",".join(r["tools_used"]) or ("error" if r["verdict"] == "error" else "direct")
+            detail = r["error"] if r["verdict"] == "error" else r["answer"]
+            out.append(
+                f"| {r['model']} / {r['mode']} | {r['case']}#{r['turn']} | {r['language']} |"
+                f" {_md_cell(r['query'], 60)} | {', '.join(r['expect_route'])} | {got} |"
+                f" {'yes' if r['completion_ok'] else 'no'} | {_md_cell(detail or '')} |"
+            )
+    out += [
+        "",
+        "Routing = the right tool was called, or no tool for direct questions. "
+        "Task completion = the final answer contains the expected value (rounding allowed) or phrase. "
+        "Grounded = tool answers whose numbers all match tool results (verified or corrected). "
+        "Turns that crashed (API outage, timeout, no credits) are counted as errors and left out of the percentages.",
+        "",
+    ]
+    return "\n".join(out)
+
+
+def _shown(path: Path) -> Path:
+    return path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
 
 
 def git_commit() -> str | None:
@@ -229,8 +372,10 @@ def main() -> int:
     parser.add_argument("--models", default=None, help="comma-separated model names to compare")
     parser.add_argument("--provider", choices=["sarvam", "openai"], default=None)
     parser.add_argument("--cases", default=None, help="comma-separated case ids to run")
+    parser.add_argument("--limit", type=int, default=None, help="run only the first N cases")
+    parser.add_argument("--no-md", action="store_true", help="don't write eval/results/<date>.md")
     parser.add_argument("--out", default=None,
-                        help="report path (default: results/latest.json, or results/model_comparison.json with --models)")
+                        help="report path (default: results/latest-<mode>.json, or results/model_comparison.json with --models)")
     parser.add_argument("--min-routing", type=float, default=None, help="exit 1 if routing accuracy is lower")
     parser.add_argument("--min-completion", type=float, default=None, help="exit 1 if task completion is lower")
     parser.add_argument("-v", "--verbose", action="store_true", help="print every answer")
@@ -241,6 +386,8 @@ def main() -> int:
     if args.cases:
         wanted = set(args.cases.split(","))
         cases = [c for c in cases if c["id"] in wanted]
+    if args.limit is not None:
+        cases = cases[: max(args.limit, 0)]
     modes = ["text", "voice"] if args.mode == "both" else [args.mode]
     models = args.models.split(",") if args.models else [None]
 
@@ -268,18 +415,27 @@ def main() -> int:
     if all(s["turns"] == 0 for s in runs.values()):
         print("\nNo turn was scored (every turn errored — check API keys/credits). Report not saved.")
         return 2
-    default_name = "model_comparison.json" if len(models) > 1 else "latest.json"
+    default_name = "model_comparison.json" if len(models) > 1 else f"latest-{args.mode}.json"
     out = Path(args.out) if args.out else RESULTS_DIR / default_name
     out.parent.mkdir(parents=True, exist_ok=True)
     report = {
         "eval_set": spec["name"], "eval_set_version": spec.get("version"),
         "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": git_commit(), "modes": modes,
+        "cases": len(cases), "turns_in_set": sum(len(c["turns"]) for c in cases),
         "summary": [{"model": m, "mode": md, **s} for (m, md), s in runs.items()],
         "rows": [asdict(r) for r in all_rows],
     }
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"saved {out.relative_to(ROOT) if out.is_relative_to(ROOT) else out}")
+    print(f"saved {_shown(out)}")
+    if not args.no_md:
+        if args.out:
+            md = out.with_suffix(".md")
+        else:
+            stem = f"{datetime.now():%Y-%m-%d}-{args.mode}" + ("-model-comparison" if len(models) > 1 else "")
+            md = RESULTS_DIR / f"{stem}.md"
+        md.write_text(render_markdown(report), encoding="utf-8")
+        print(f"saved {_shown(md)}")
 
     failed = False
     for (model, mode), s in runs.items():

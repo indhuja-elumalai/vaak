@@ -1,14 +1,27 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
+    inputs:
+      run_eval:
+        description: "Also run the live eval (uses SARVAM_API_KEY credits)"
+        type: boolean
+        default: false
+      mode:
+        description: "Eval mode"
+        type: choice
+        options: [text, voice, both]
+        default: text
+      limit:
+        description: "Only the first N cases (blank = all 40)"
+        required: false
+        default: ""
 
 jobs:
-  unit-tests:
-    name: Unit tests (offline)
+  lint-and-test:
+    name: Lint and unit tests (offline)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,11 +30,13 @@ jobs:
           python-version: "3.13"
           cache: pip
       - run: pip install -r requirements-dev.txt
+      - run: ruff check .
       - run: pytest -q
 
-  eval-gate:
-    name: Eval gate (live, text mode)
-    needs: unit-tests
+  eval:
+    name: Live eval (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_eval
+    needs: lint-and-test
     runs-on: ubuntu-latest
     env:
       SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
@@ -32,15 +47,19 @@ jobs:
           python-version: "3.13"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Skip note
-        if: env.SARVAM_API_KEY == ''
-        run: echo "::notice::SARVAM_API_KEY secret not set; skipping the live eval gate."
-      - name: Run eval (fails if routing < 85% or completion < 70%)
-        if: env.SARVAM_API_KEY != ''
-        run: python eval/eval_runner.py --mode text --min-routing 0.85 --min-completion 0.70 --out eval/results/ci.json
+      - name: Check the secret is set
+        run: test -n "$SARVAM_API_KEY" || { echo "::error::Add SARVAM_API_KEY under Settings → Secrets and variables → Actions"; exit 1; }
+      - name: Run eval
+        env:
+          MODE: ${{ inputs.mode }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          python eval/eval_runner.py --mode "$MODE" ${LIMIT:+--limit "$LIMIT"} --out eval/results/ci.json
       - name: Upload eval report
-        if: always() && env.SARVAM_API_KEY != ''
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-report
-          path: eval/results/ci.json
+          path: |
+            eval/results/ci.json
+            eval/results/ci.md

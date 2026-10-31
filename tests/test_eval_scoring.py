@@ -38,9 +38,11 @@ def test_percentile_nearest_rank():
 def test_eval_set_is_well_formed():
     spec = json.loads(EVAL_SET.read_text(encoding="utf-8"))
     ids = [c["id"] for c in spec["cases"]]
-    assert len(ids) == len(set(ids)) >= 20
+    assert len(ids) == len(set(ids)) >= 40
+    assert {c["language"] for c in spec["cases"]} == {"English", "Hindi", "Hinglish", "Tamil", "Tanglish"}
     for case in spec["cases"]:
         assert case["voice"] in {"en-IN", "hi-IN", "ta-IN"}
         for turn in case["turns"]:
             assert turn["query"] and turn["expect_route"]
             assert turn.get("expect_values") or turn.get("expect_text")
+            assert turn.get("audio", "eval/audio/x").startswith("eval/audio/")
