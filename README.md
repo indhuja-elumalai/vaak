@@ -1,5 +1,7 @@
 # Vaak
 
+**Live demo:** [vaak.onrender.com](https://vaak.onrender.com) (first load may take ~30 s)
+
 [![CI](https://github.com/indhuja-elumalai/vaak/actions/workflows/ci.yml/badge.svg)](https://github.com/indhuja-elumalai/vaak/actions/workflows/ci.yml)
 
 **A voice study helper that knows when to calculate and when to just answer, in English, Hindi, Tamil and code-mixed speech.**
