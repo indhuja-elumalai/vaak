@@ -1,0 +1,1369 @@
+{
+  "eval_set": "study_eval_set",
+  "eval_set_version": 3,
+  "run_at": "2026-10-31T09:40:39+00:00",
+  "git_commit": "bdd9a4c",
+  "modes": [
+    "text"
+  ],
+  "cases": 40,
+  "turns_in_set": 47,
+  "summary": [
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "turns": 47,
+      "routing_accuracy": 1.0,
+      "task_completion": 0.9574468085106383,
+      "tool_turns": 35,
+      "grounded_tool_turns": 1.0,
+      "verdicts": {
+        "verified": 35,
+        "unverified": 12
+      },
+      "latency_ms": {
+        "p50": 431.7453328985721,
+        "p95": 818.9402502030134,
+        "max": 887.4139999970794
+      },
+      "transcript_wer": {
+        "mean": null,
+        "comparable_turns": 0
+      },
+      "errors": 0,
+      "warnings": 0,
+      "by_category": {
+        "direct": {
+          "turns": 5,
+          "routing": 1.0,
+          "completion": 1.0
+        },
+        "direct-fact": {
+          "turns": 4,
+          "routing": 1.0,
+          "completion": 0.75
+        },
+        "follow-up": {
+          "turns": 14,
+          "routing": 1.0,
+          "completion": 1.0
+        },
+        "formula+calc": {
+          "turns": 2,
+          "routing": 1.0,
+          "completion": 1.0
+        },
+        "impossible": {
+          "turns": 1,
+          "routing": 1.0,
+          "completion": 1.0
+        },
+        "tool": {
+          "turns": 21,
+          "routing": 1.0,
+          "completion": 0.9523809523809523
+        }
+      },
+      "by_language": {
+        "English": {
+          "turns": 12,
+          "routing": 1.0,
+          "completion": 1.0,
+          "grounded_tool_turns": 1.0,
+          "latency_p50_ms": 383.3837084239349,
+          "latency_p95_ms": 887.4139999970794,
+          "errors": 0
+        },
+        "Hindi": {
+          "turns": 9,
+          "routing": 1.0,
+          "completion": 0.7777777777777778,
+          "grounded_tool_turns": 1.0,
+          "latency_p50_ms": 432.1767499204725,
+          "latency_p95_ms": 492.75175016373396,
+          "errors": 0
+        },
+        "Hinglish": {
+          "turns": 9,
+          "routing": 1.0,
+          "completion": 1.0,
+          "grounded_tool_turns": 1.0,
+          "latency_p50_ms": 431.7453328985721,
+          "latency_p95_ms": 617.854957934469,
+          "errors": 0
+        },
+        "Tamil": {
+          "turns": 9,
+          "routing": 1.0,
+          "completion": 1.0,
+          "grounded_tool_turns": 1.0,
+          "latency_p50_ms": 449.41179105080664,
+          "latency_p95_ms": 875.3907079808414,
+          "errors": 0
+        },
+        "Tanglish": {
+          "turns": 8,
+          "routing": 1.0,
+          "completion": 1.0,
+          "grounded_tool_turns": 1.0,
+          "latency_p50_ms": 451.1828130343929,
+          "latency_p95_ms": 728.916292078793,
+          "errors": 0
+        }
+      },
+      "audio_sources": {}
+    }
+  ],
+  "rows": [
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "calc-en",
+      "turn": 1,
+      "language": "English",
+      "category": "tool",
+      "query": "What is 37 times 48?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "37 times 48 is 1776.",
+      "latency_ms": 818.9402502030134,
+      "stt_ms": null,
+      "agent_ms": 818.8278749585152,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "calc-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "tool",
+      "query": "144 ka square root kya hai?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "144 ka square root 12 hai.",
+      "latency_ms": 347.81854203902185,
+      "stt_ms": null,
+      "agent_ms": 347.67283382825553,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "calc-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "tool",
+      "query": "256 இன் வர்க்கமூலம் என்ன?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "256 இன் வர்க்கமூலம் 16 ஆகும்.",
+      "latency_ms": 405.7999581564218,
+      "stt_ms": null,
+      "agent_ms": 405.7394580449909,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "percent-en",
+      "turn": 1,
+      "language": "English",
+      "category": "tool",
+      "query": "What is 15% of 240?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate",
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "15% of 240 is 36.",
+      "latency_ms": 523.6895838752389,
+      "stt_ms": null,
+      "agent_ms": 523.5771669540554,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "tool",
+      "query": "5 kilometer ko miles mein convert karo",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "5 kilometer approximately 3.11 miles hota hai.",
+      "latency_ms": 456.0659579001367,
+      "stt_ms": null,
+      "agent_ms": 455.9460000600666,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-temp-en",
+      "turn": 1,
+      "language": "English",
+      "category": "tool",
+      "query": "100 degree Fahrenheit is how much in Celsius?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "100 degrees Fahrenheit is about 37.78 degrees Celsius.",
+      "latency_ms": 522.9841670952737,
+      "stt_ms": null,
+      "agent_ms": 522.7186670526862,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "tool",
+      "query": "25 கிலோகிராம் எத்தனை பவுண்டு?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "25 கிலோகிராம் என்பது சுமார் 55.12 பவுண்டு ஆகும்.",
+      "latency_ms": 399.19458399526775,
+      "stt_ms": null,
+      "agent_ms": 399.0746249910444,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "tool",
+      "query": "100 kilometer-ah miles-la convert pannu",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "100 kilometer-ah miles-la convert panna 62.1371 miles varum.",
+      "latency_ms": 407.3134169448167,
+      "stt_ms": null,
+      "agent_ms": 407.17912488617003,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "tool",
+      "query": "Kinetic energy ka formula kya hai?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "Kinetic energy ka formula KE = (1/2) * m * v^2 hota hai. Yahan m mass hai kg mein aur v velocity hai m/s mein.",
+      "latency_ms": 617.854957934469,
+      "stt_ms": null,
+      "agent_ms": 617.6412079948932,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "tool",
+      "query": "Ohm's law formula enna?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "Ohm's law formula V = I * R. Idhula V voltage, I current, and R resistance.",
+      "latency_ms": 476.1359170079231,
+      "stt_ms": null,
+      "agent_ms": 476.05187515728176,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-calc-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "formula+calc",
+      "query": "Radius 7 cm wale circle ka area kitna hoga?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "7 cm radius wale circle ka area approximately 153.94 square cm hoga.",
+      "latency_ms": 379.40358300693333,
+      "stt_ms": null,
+      "agent_ms": 379.33583394624293,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-calc-en",
+      "turn": 1,
+      "language": "English",
+      "category": "formula+calc",
+      "query": "What is the kinetic energy of a 2 kg ball moving at 3 m/s?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "lookup_formula",
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "The kinetic energy is 9 joules.",
+      "latency_ms": 887.4139999970794,
+      "stt_ms": null,
+      "agent_ms": 887.1079999953508,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "impossible-en",
+      "turn": 1,
+      "language": "English",
+      "category": "impossible",
+      "query": "Convert 5 kg to meters",
+      "expect_route": [
+        "direct",
+        "convert_units"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Kilograms measure mass, and meters measure length, so they cannot be converted directly. If you meant something else, let me know what you are trying to find.",
+      "latency_ms": 288.46087493002415,
+      "stt_ms": null,
+      "agent_ms": 288.3637920022011,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "direct-en",
+      "turn": 1,
+      "language": "English",
+      "category": "direct",
+      "query": "Who wrote India's national anthem?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Rabindranath Tagore wrote India's national anthem.",
+      "latency_ms": 319.8956660926342,
+      "stt_ms": null,
+      "agent_ms": 319.68687498010695,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "direct-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "direct",
+      "query": "Photosynthesis kya hota hai? Simple mein samjhao.",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Photosynthesis ek aisa process hai jisme plants sunlight, water aur carbon dioxide use karke apna khana banate hain aur oxygen release karte hain. Isme green pigment chlorophyll sunlight ko capture karta hai. Simple words mein, plants apni energy ke liye apna khud ka food taiyaar karte hain.",
+      "latency_ms": 326.4374169521034,
+      "stt_ms": null,
+      "agent_ms": 326.2832500040531,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "direct-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "direct",
+      "query": "ஒளிச்சேர்க்கை என்றால் என்ன?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "ஒளிச்சேர்க்கை என்பது தாவரங்கள் சூரிய ஒளியைப் பயன்படுத்தி, கார்பன் டை ஆக்சைடு மற்றும் நீரைக் கொண்டு தங்களுக்குத் தேவையான உணவை உருவாக்கும் ஒரு உயிரியல் செயல்முறையாகும். இந்தச் செயல்முறையின் போது ஆக்சிஜன் ஒரு துணைப் பொருளாக வெளியேற்றப்படுகிறது. இதுவே பூமியில் உள்ள பெரும்பாலான உயிரினங்களுக்கு அடிப்படை ஆற்றலை வழங்குகிறது.",
+      "latency_ms": 473.69554196484387,
+      "stt_ms": null,
+      "agent_ms": 473.4856670256704,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "fact-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "direct-fact",
+      "query": "Tamizhil mothom ethana ezhuthukkal irukku?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Tamil language-la motham 247 ezhuthukkal irukku. Idhu 12 uyir ezhuthukkal, 18 mei ezhuthukkal, 210 uyirmei ezhuthukkal, matrum 5 aayutha ezhuthu serndha count.",
+      "latency_ms": 411.61183291114867,
+      "stt_ms": null,
+      "agent_ms": 411.36862500570714,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "fact-en",
+      "turn": 1,
+      "language": "English",
+      "category": "direct-fact",
+      "query": "How many bones are there in an adult human body?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "An adult human body has 206 bones. This number can vary slightly because some people have extra bones like sesamoid bones or fused vertebrae.",
+      "latency_ms": 267.37437513656914,
+      "stt_ms": null,
+      "agent_ms": 267.0990829356015,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-en",
+      "turn": 1,
+      "language": "English",
+      "category": "follow-up",
+      "query": "25 kg in pounds?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "25 kg is approximately 55.12 pounds.",
+      "latency_ms": 362.2473329305649,
+      "stt_ms": null,
+      "agent_ms": 362.09645913913846,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-en",
+      "turn": 2,
+      "language": "English",
+      "category": "follow-up",
+      "query": "and in grams?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "25 kg is 25000 grams.",
+      "latency_ms": 404.5200839173049,
+      "stt_ms": null,
+      "agent_ms": 404.32099997997284,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "follow-up",
+      "query": "Kinetic energy ka formula kya hai?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "Kinetic energy ka formula KE = (1/2) * m * v^2 hota hai, jahan m mass hai aur v velocity hai. Mass kilograms mein aur velocity meters per second mein hoti hai.",
+      "latency_ms": 593.4172908309847,
+      "stt_ms": null,
+      "agent_ms": 593.1689590215683,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-hinglish",
+      "turn": 2,
+      "language": "Hinglish",
+      "category": "follow-up",
+      "query": "Ab 2 kg aur 3 m/s ke liye calculate karo",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "2 kg mass aur 3 m/s velocity ke liye kinetic energy 9 joules aati hai.",
+      "latency_ms": 390.56545798666775,
+      "stt_ms": null,
+      "agent_ms": 390.3338338714093,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "follow-up",
+      "query": "7 cm ஆரம் கொண்ட வட்டத்தின் பரப்பளவு என்ன?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "7 சென்டிமீட்டர் ஆரம் கொண்ட வட்டத்தின் பரப்பளவு தோராயமாக 153.94 சதுர சென்டிமீட்டர் ஆகும்.",
+      "latency_ms": 479.7805829439312,
+      "stt_ms": null,
+      "agent_ms": 479.64195790700614,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-ta",
+      "turn": 2,
+      "language": "Tamil",
+      "category": "follow-up",
+      "query": "அதன் சுற்றளவு என்ன?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "அதன் சுற்றளவு தோராயமாக 43.98 சென்டிமீட்டர் ஆகும்.",
+      "latency_ms": 449.41179105080664,
+      "stt_ms": null,
+      "agent_ms": 449.2553330492228,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-direct-en",
+      "turn": 1,
+      "language": "English",
+      "category": "follow-up",
+      "query": "Who wrote India's national anthem?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Rabindranath Tagore wrote India's national anthem.",
+      "latency_ms": 146.12404210492969,
+      "stt_ms": null,
+      "agent_ms": 145.979082910344,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-direct-en",
+      "turn": 2,
+      "language": "English",
+      "category": "follow-up",
+      "query": "When was he born?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Rabindranath Tagore was born on 7 May 1861.",
+      "latency_ms": 214.98408308252692,
+      "stt_ms": null,
+      "agent_ms": 214.9051248561591,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-en",
+      "turn": 1,
+      "language": "English",
+      "category": "tool",
+      "query": "What is the formula for the area of a triangle?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "The formula for the area of a triangle is A equals one-half times base times height. Here, b stands for the base and h stands for the height.",
+      "latency_ms": 705.0186670385301,
+      "stt_ms": null,
+      "agent_ms": 704.872417030856,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "calc-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "tool",
+      "query": "23 गुणा 17 कितना होता है?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "23 गुणा 17 का उत्तर 391 होता है।",
+      "latency_ms": 433.8742080144584,
+      "stt_ms": null,
+      "agent_ms": 433.6834168061614,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "percent-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "tool",
+      "query": "480 का 25 प्रतिशत कितना है?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "480 का 25 प्रतिशत 120 होता है।",
+      "latency_ms": 420.230665942654,
+      "stt_ms": null,
+      "agent_ms": 420.0592499691993,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "tool",
+      "query": "3 किलोमीटर में कितने मीटर होते हैं?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "3 किलोमीटर में 3000 मीटर होते हैं।",
+      "latency_ms": 476.5780419111252,
+      "stt_ms": null,
+      "agent_ms": 476.4095831196755,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-temp-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "tool",
+      "query": "37 डिग्री सेल्सियस को फ़ारेनहाइट में बदलो",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "37 डिग्री सेल्सियस 98.6 डिग्री फ़ारेनहाइट के बराबर होता है।",
+      "latency_ms": 463.09600002132356,
+      "stt_ms": null,
+      "agent_ms": 462.98191603273153,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "tool",
+      "query": "न्यूटन के दूसरे नियम का सूत्र क्या है?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": false,
+      "verdict": "verified",
+      "answer": "न्यूटन के दूसरे नियम का सूत्र F बराबर m गुणा a है, जहाँ F बल है, m द्रव्यमान है और a त्वरण है।",
+      "latency_ms": 432.1767499204725,
+      "stt_ms": null,
+      "agent_ms": 432.0675409398973,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "direct-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "direct",
+      "query": "भारत की राजधानी क्या है?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "भारत की राजधानी नई दिल्ली है।",
+      "latency_ms": 304.6296250540763,
+      "stt_ms": null,
+      "agent_ms": 304.53141615726054,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "fact-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "direct-fact",
+      "query": "पृथ्वी सूर्य का एक चक्कर कितने दिनों में लगाती है?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": false,
+      "verdict": "unverified",
+      "answer": "पृथ्वी सूर्य का एक चक्कर लगभग 365.25 दिनों में लगाती है। यह एक खगोलीय वर्ष की अवधि है।",
+      "latency_ms": 190.48399990424514,
+      "stt_ms": null,
+      "agent_ms": 190.18666702322662,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-hi",
+      "turn": 1,
+      "language": "Hindi",
+      "category": "follow-up",
+      "query": "10 किलोग्राम कितने पाउंड होते हैं?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "10 किलोग्राम लगभग 22.05 पाउंड होते हैं।",
+      "latency_ms": 364.59379200823605,
+      "stt_ms": null,
+      "agent_ms": 364.38708403147757,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-hi",
+      "turn": 2,
+      "language": "Hindi",
+      "category": "follow-up",
+      "query": "और ग्राम में?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "10 किलोग्राम 10,000 ग्राम होते हैं।",
+      "latency_ms": 492.75175016373396,
+      "stt_ms": null,
+      "agent_ms": 492.6701670046896,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-calc-hinglish",
+      "turn": 1,
+      "language": "Hinglish",
+      "category": "follow-up",
+      "query": "12 ka square kitna hai?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "12 ka square 144 hota hai.",
+      "latency_ms": 616.6122909635305,
+      "stt_ms": null,
+      "agent_ms": 616.4405411109328,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-calc-hinglish",
+      "turn": 2,
+      "language": "Hinglish",
+      "category": "follow-up",
+      "query": "Aur cube kitna hoga?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "12 ka cube 1728 hota hai.",
+      "latency_ms": 431.7453328985721,
+      "stt_ms": null,
+      "agent_ms": 431.7012920510024,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "percent-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "tool",
+      "query": "500 இல் 20 சதவீதம் என்ன?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "500 இல் 20 சதவீதம் 100 ஆகும்.",
+      "latency_ms": 388.9638748951256,
+      "stt_ms": null,
+      "agent_ms": 388.91008286736906,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "convert-temp-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "tool",
+      "query": "30 டிகிரி செல்சியஸ் எத்தனை ஃபாரன்ஹீட்?",
+      "expect_route": [
+        "convert_units"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "30 டிகிரி செல்சியஸ் என்பது 86.0 டிகிரி ஃபாரன்ஹீட் ஆகும்.",
+      "latency_ms": 658.4089999087155,
+      "stt_ms": null,
+      "agent_ms": 658.3337909542024,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "formula-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "tool",
+      "query": "இயக்க ஆற்றலின் சூத்திரம் என்ன?",
+      "expect_route": [
+        "lookup_formula"
+      ],
+      "tools_used": [
+        "lookup_formula"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "இயக்க ஆற்றலின் சூத்திரம் KE = (1/2) × m × v² ஆகும். இதில் m என்பது பொருளின் நிறை, v என்பது அதன் திசைவேகம். இதன் மதிப்பு ஜூல் (J) அலகில் அளவிடப்படுகிறது.",
+      "latency_ms": 875.3907079808414,
+      "stt_ms": null,
+      "agent_ms": 875.3203330561519,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "fact-ta",
+      "turn": 1,
+      "language": "Tamil",
+      "category": "direct-fact",
+      "query": "மனித உடலில் எத்தனை எலும்புகள் உள்ளன?",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "மனித உடலில் பொதுவாக 206 எலும்புகள் உள்ளன. வயதுக்கு ஏற்ப இந்த எண்ணிக்கை சற்று மாறுபடலாம்.",
+      "latency_ms": 220.76462511904538,
+      "stt_ms": null,
+      "agent_ms": 220.64600000157952,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "calc-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "tool",
+      "query": "45 times 12 evlo?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "45 times 12 equal to 540.",
+      "latency_ms": 312.01524985954165,
+      "stt_ms": null,
+      "agent_ms": 311.8676671292633,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "percent-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "tool",
+      "query": "800 la 15 percent evlo?",
+      "expect_route": [
+        "calculate"
+      ],
+      "tools_used": [
+        "calculate"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "800 la 15 percent na 120.",
+      "latency_ms": 581.7020831163973,
+      "stt_ms": null,
+      "agent_ms": 581.6115001216531,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "direct-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "direct",
+      "query": "Gravity na enna? Simple-ah sollu",
+      "expect_route": [
+        "direct"
+      ],
+      "tools_used": [],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "unverified",
+      "answer": "Gravity na oru object-a innoru object mela pull panra force. Earth namma mela pull panradhu dhaan gravity, adhanala dhaan naama keezha vizhama nikkrom. Simple-ah sonna, ellathayum thannoda center-a nokki izhukkira attraction dhaan gravity.",
+      "latency_ms": 728.916292078793,
+      "stt_ms": null,
+      "agent_ms": 728.8055829703808,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-tanglish",
+      "turn": 1,
+      "language": "Tanglish",
+      "category": "follow-up",
+      "query": "2 hours-ah minutes-la convert pannu",
+      "expect_route": [
+        "convert_units",
+        "calculate"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "2 hours-na 120 minutes.",
+      "latency_ms": 426.22970906086266,
+      "stt_ms": null,
+      "agent_ms": 426.12625006586313,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    },
+    {
+      "model": "sarvam-105b-conversations",
+      "mode": "text",
+      "case": "followup-tanglish",
+      "turn": 2,
+      "language": "Tanglish",
+      "category": "follow-up",
+      "query": "Seconds-la evlo?",
+      "expect_route": [
+        "convert_units",
+        "calculate"
+      ],
+      "tools_used": [
+        "convert_units"
+      ],
+      "route_ok": true,
+      "completion_ok": true,
+      "verdict": "verified",
+      "answer": "120 minutes-na 7200 seconds.",
+      "latency_ms": 524.7144170571119,
+      "stt_ms": null,
+      "agent_ms": 524.6380830649287,
+      "tts_ms": null,
+      "transcript": null,
+      "wer": null,
+      "error": null,
+      "audio_source": null
+    }
+  ]
+}
