@@ -1,0 +1,17 @@
+# Never ship secrets or local data into the image.
+.env
+.env.*
+!.env.example
+.venv/
+.git/
+.github/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+out/
+samples/
+eval/
+tests/
+docs/
