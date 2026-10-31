@@ -16,9 +16,9 @@ Every score is also broken down by language.
   python eval/eval_runner.py --cases followup-en,fact-en -v
   python eval/eval_runner.py --mode text --min-routing 0.85   # CI gate: exit 1 below threshold
 
-Results are printed as tables and saved to eval/results/latest.json
+Results are printed as tables and saved to eval/results/latest-<mode>.json
 (or eval/results/model_comparison.json when comparing several models, or --out),
-plus a readable report at eval/results/<date>.md.
+plus a readable report at eval/results/<date>-<mode>.md. Text and voice runs keep separate files.
 """
 from __future__ import annotations
 
@@ -375,7 +375,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None, help="run only the first N cases")
     parser.add_argument("--no-md", action="store_true", help="don't write eval/results/<date>.md")
     parser.add_argument("--out", default=None,
-                        help="report path (default: results/latest.json, or results/model_comparison.json with --models)")
+                        help="report path (default: results/latest-<mode>.json, or results/model_comparison.json with --models)")
     parser.add_argument("--min-routing", type=float, default=None, help="exit 1 if routing accuracy is lower")
     parser.add_argument("--min-completion", type=float, default=None, help="exit 1 if task completion is lower")
     parser.add_argument("-v", "--verbose", action="store_true", help="print every answer")
@@ -415,7 +415,7 @@ def main() -> int:
     if all(s["turns"] == 0 for s in runs.values()):
         print("\nNo turn was scored (every turn errored — check API keys/credits). Report not saved.")
         return 2
-    default_name = "model_comparison.json" if len(models) > 1 else "latest.json"
+    default_name = "model_comparison.json" if len(models) > 1 else f"latest-{args.mode}.json"
     out = Path(args.out) if args.out else RESULTS_DIR / default_name
     out.parent.mkdir(parents=True, exist_ok=True)
     report = {
@@ -432,7 +432,7 @@ def main() -> int:
         if args.out:
             md = out.with_suffix(".md")
         else:
-            stem = datetime.now().strftime("%Y-%m-%d") + ("-model-comparison" if len(models) > 1 else "")
+            stem = f"{datetime.now():%Y-%m-%d}-{args.mode}" + ("-model-comparison" if len(models) > 1 else "")
             md = RESULTS_DIR / f"{stem}.md"
         md.write_text(render_markdown(report), encoding="utf-8")
         print(f"saved {_shown(md)}")
