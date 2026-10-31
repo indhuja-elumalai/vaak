@@ -403,6 +403,9 @@ body.mic-off .mic-btn { background: var(--surface-2); color: var(--faint); }
 .send-btn:disabled { background: var(--surface-2); color: var(--faint); cursor: default; }
 .send-btn:not(:disabled):hover { transform: translateY(-1px); }
 .footnote { margin: var(--s2) 0 0; text-align: center; font-size: var(--fs-xs); color: var(--faint); text-wrap: balance; }
+.source-link { margin: 2px 0 0; text-align: center; font-size: var(--fs-xs); }
+.source-link a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; border-radius: 4px; }
+.source-link a:hover { color: var(--accent-ink); }
 
 /* ---------- Toast ---------- */
 .toast {
