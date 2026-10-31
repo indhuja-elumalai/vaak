@@ -43,7 +43,9 @@ class ConversationStore:
 
     def get(self, session_id: str) -> Conversation:
         with self._lock:
-            conv = self._sessions.pop(session_id, None) or Conversation()
+            conv = self._sessions.pop(session_id, None)
+            if conv is None:  # not `or`: an empty Conversation is falsy (it has __len__)
+                conv = Conversation()
             self._sessions[session_id] = conv
             while len(self._sessions) > self._max:
                 self._sessions.popitem(last=False)

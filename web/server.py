@@ -7,7 +7,7 @@ Endpoints:
   GET  /                    the app
   GET  /api/info            model and tool names for the header
   POST /api/ask/text        {"text": "...", "speak": true, "session_id": "..."}
-  POST /api/ask/audio       multipart: file=<audio>, speak=true|false, session_id=...
+  POST /api/ask/audio       multipart: file=<audio>, speak=true|false, session_id=..., language=unknown|en-IN|hi-IN|ta-IN
   DELETE /api/session/<id>  forget a conversation ("New chat")
   GET  /api/audio/<name>    a synthesized reply (WAV)
 
@@ -26,9 +26,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from core.agent_runtime import Agent, detect_language, load_tools
+from core.agent_runtime import LANGUAGE_NAMES, SUPPORTED_LANGUAGES, Agent, detect_language, load_tools
 from core.conversation import Conversation, ConversationStore
-from core.pipeline import PipelineError, TurnResult, VoicePipeline
+from core.pipeline import PipelineError, TurnResult, UnsupportedLanguageError, VoicePipeline
 from core.tool_registry import ToolRegistry
 
 TOOLS_MODULE = "tools.study_tools"
@@ -78,7 +78,18 @@ def run_turn(conversation: Conversation | None, speak: bool, run):
 
 def language_label(lang: str, text: str) -> str:
     _, script = detect_language(text)
-    return _LANGUAGE_LABELS.get((lang, script), "English")
+    if (lang, script) in _LANGUAGE_LABELS:
+        return _LANGUAGE_LABELS[(lang, script)]
+    return "English" if lang in ("en-IN", "unknown", "") else LANGUAGE_NAMES.get(lang, lang)
+
+
+def unsupported_response(e: UnsupportedLanguageError) -> JSONResponse:
+    # 422 with stage=language tells the page to ask the user to pick a supported language.
+    return JSONResponse(
+        {"error": str(e), "stage": "language", "detected": e.language_code,
+         "detected_name": e.language_name, "heard": e.heard},
+        status_code=422,
+    )
 
 
 def serialize(turn: TurnResult, conversation: Conversation | None) -> dict:
@@ -116,7 +127,8 @@ def serialize(turn: TurnResult, conversation: Conversation | None) -> dict:
 
 @app.get("/api/info")
 def info() -> dict:
-    return {"model": agent.model, "tools": registry.names()}
+    return {"model": agent.model, "tools": registry.names(),
+            "languages": {c: LANGUAGE_NAMES[c] for c in SUPPORTED_LANGUAGES}}
 
 
 @app.post("/api/ask/text")
@@ -125,7 +137,11 @@ def ask_text(q: TextQuery) -> dict:
     if not text:
         raise HTTPException(400, "Question is empty")
     conversation = conversation_for(q.session_id)
-    return serialize(run_turn(conversation, q.speak, lambda p: p.run_text(text)), conversation)
+    try:
+        turn = run_turn(conversation, q.speak, lambda p: p.run_text(text))
+    except UnsupportedLanguageError as e:
+        return unsupported_response(e)
+    return serialize(turn, conversation)
 
 
 @app.post("/api/ask/audio")
@@ -133,7 +149,10 @@ def ask_audio(
     file: UploadFile = File(...),
     speak: bool = Form(True),
     session_id: str | None = Form(None),
+    language: str = Form("unknown"),
 ):
+    if language != "unknown" and language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(400, f"Unsupported language: {language}")
     conversation = conversation_for(session_id)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in AUDIO_SUFFIXES:
@@ -146,7 +165,9 @@ def ask_audio(
     path = UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}"
     path.write_bytes(data)
     try:
-        turn = run_turn(conversation, speak, lambda p: p.run_audio(path))
+        turn = run_turn(conversation, speak, lambda p: p.run_audio(path, language_code=language))
+    except UnsupportedLanguageError as e:
+        return unsupported_response(e)
     except PipelineError as e:
         # 422 with stage=stt tells the page to fall back to typing.
         return JSONResponse({"error": str(e), "stage": "stt"}, status_code=422)

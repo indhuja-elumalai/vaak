@@ -97,16 +97,36 @@ _REPLY_INSTRUCTIONS = {
 }
 
 
-def detect_language(text: str) -> tuple[str, str]:
-    """Return (BCP-47 code, "native" | "latin") for Hindi, Tamil or English text.
+# Languages the runtime can hold a conversation in (detection, reply rules, eval coverage).
+SUPPORTED_LANGUAGES = ("en-IN", "hi-IN", "ta-IN")
+LANGUAGE_NAMES = {
+    "en-IN": "English", "hi-IN": "Hindi", "ta-IN": "Tamil", "te-IN": "Telugu", "kn-IN": "Kannada",
+    "ml-IN": "Malayalam", "bn-IN": "Bengali", "mr-IN": "Marathi", "gu-IN": "Gujarati",
+    "pa-IN": "Punjabi", "od-IN": "Odia", "ur-IN": "Urdu", "as-IN": "Assamese",
+}
+# Unicode blocks of Indian scripts -> language. Devanagari is treated as Hindi.
+_SCRIPTS = [
+    ("\u0900", "\u097f", "hi-IN"), ("\u0b80", "\u0bff", "ta-IN"), ("\u0c00", "\u0c7f", "te-IN"),
+    ("\u0c80", "\u0cff", "kn-IN"), ("\u0d00", "\u0d7f", "ml-IN"), ("\u0980", "\u09ff", "bn-IN"),
+    ("\u0a80", "\u0aff", "gu-IN"), ("\u0a00", "\u0a7f", "pa-IN"), ("\u0b00", "\u0b7f", "od-IN"),
+    ("\u0600", "\u06ff", "ur-IN"),
+]
 
-    Latin text with no Hindi/Tamil signal returns "unknown": it is probably English, but
-    the LLM decides rather than being forced to English.
+
+def detect_language(text: str) -> tuple[str, str]:
+    """Return (BCP-47 code, "native" | "latin").
+
+    Native script decides directly (including languages Vaak doesn't support, such as
+    Telugu, so callers can refuse them). Latin text with no Hindi/Tamil signal returns
+    "unknown": it is probably English, but the LLM decides rather than being forced to.
     """
-    tamil = sum("஀" <= ch <= "௿" for ch in text)
-    devanagari = sum("ऀ" <= ch <= "ॿ" for ch in text)
-    if tamil or devanagari:
-        return ("ta-IN" if tamil >= devanagari else "hi-IN"), "native"
+    counts = {}
+    for lo, hi, lang in _SCRIPTS:
+        n = sum(lo <= ch <= hi for ch in text)
+        if n:
+            counts[lang] = n
+    if counts:
+        return max(counts, key=counts.get), "native"
 
     words = re.findall(r"[a-z]+", text.lower())
     scores = {lang: sum(w in markers for w in words) for lang, markers in _LATIN_MARKERS.items()}
@@ -118,10 +138,17 @@ def detect_language(text: str) -> tuple[str, str]:
 
 
 def reply_instruction(text: str, language_code: str | None = None) -> tuple[str, str]:
-    """Pick the reply language; an STT-detected language_code overrides text detection."""
+    """Pick the reply language; an STT-detected language_code overrides text detection.
+
+    Exception: STT often labels romanized Hinglish/Tanglish audio as en-IN. When the
+    transcript itself has clear Hindi/Tamil markers, the text wins over that label.
+    """
     detected, script = detect_language(text)
+    if language_code == "en-IN" and script == "latin" and detected in ("hi-IN", "ta-IN"):
+        language_code = detected
     lang = language_code if (language_code, script) in _REPLY_INSTRUCTIONS else detected
-    return lang, _REPLY_INSTRUCTIONS[(lang, script)]
+    fallback = "the same language and script the user wrote in."
+    return lang, _REPLY_INSTRUCTIONS.get((lang, script), fallback)
 
 
 @dataclass
@@ -178,9 +205,11 @@ def make_llm_client(provider: str | None = None) -> tuple[OpenAI, str, dict]:
             timeout=LLM_TIMEOUT_S,
             max_retries=1,
         )
-        # sarvam-105b is a reasoning model; low effort keeps voice latency down.
+        # Default chosen by the eval (eval/results/model_comparison.json): same routing and
+        # grounding as sarvam-105b at ~10x lower latency, which matters most for voice.
+        # reasoning_effort only affects the reasoning variant (sarvam-105b).
         extra = {"extra_body": {"reasoning_effort": os.getenv("SARVAM_REASONING_EFFORT", "low")}}
-        return client, os.getenv("SARVAM_LLM_MODEL", "sarvam-105b"), extra
+        return client, os.getenv("SARVAM_LLM_MODEL", "sarvam-105b-conversations"), extra
     if provider == "openai":
         if not os.getenv("OPENAI_API_KEY"):
             raise RuntimeError("OPENAI_API_KEY is not set in .env")
@@ -195,10 +224,13 @@ class Agent:
         system_prompt: str = "",
         provider: str | None = None,
         max_steps: int = 4,
+        model: str | None = None,
     ) -> None:
         self.registry = registry
         self.system_prompt = BASE_SYSTEM_PROMPT + ("\n" + system_prompt if system_prompt else "")
         self.client, self.model, self._extra = make_llm_client(provider)
+        if model:  # e.g. compare models in the eval without touching .env
+            self.model = model
         self.max_steps = max_steps
 
     def run(

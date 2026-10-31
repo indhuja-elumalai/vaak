@@ -7,3 +7,6 @@ out/
 
 # local test recordings (may contain your voice)
 samples/
+
+# eval: cached TTS of eval questions
+eval/.cache/

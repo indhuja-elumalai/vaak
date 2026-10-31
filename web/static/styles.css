@@ -326,6 +326,21 @@ body.has-thread .hero { display: none; }
   padding: 8px 6px; max-height: 180px; min-height: 38px;
 }
 #input::placeholder { color: var(--faint); }
+.lang-pick {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  height: 38px; padding: 0 4px 0 9px; border-radius: 999px;
+  color: var(--muted); font-size: 13px; cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, box-shadow .2s ease;
+}
+.lang-pick:hover { background: var(--surface-2); color: var(--text); }
+.lang-pick .icon { width: 16px; height: 16px; }
+.lang-pick select {
+  appearance: none; -webkit-appearance: none; border: 0; background: transparent;
+  font: inherit; color: inherit; padding: 4px 6px 4px 2px; cursor: pointer; outline: 0;
+}
+.lang-pick:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+.lang-pick.attention { color: var(--accent); background: var(--accent-soft); animation: nudge .5s ease 3; }
+@keyframes nudge { 50% { transform: translateY(-2px); } }
 .mic-btn, .send-btn {
   position: relative; display: grid; place-items: center;
   width: 38px; height: 38px; border-radius: 50%; border: 0; flex: none;
@@ -374,6 +389,8 @@ body[data-state="listening"] .mic-btn .icon-stop { display: block; fill: current
 @media (max-width: 600px) {
   .brand-tag, .model-pill { display: none; }
   .new-chat span { display: none; }
+  .lang-pick .icon { display: none; }
+  .lang-pick { padding: 0 2px 0 6px; }
   .step { grid-template-columns: 14px minmax(0, 1fr) 52px; }
   .step-bar { display: none; }
   .new-chat { padding: 0 9px; }

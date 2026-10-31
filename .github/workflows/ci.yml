@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  eval-gate:
+    name: Eval gate (live, text mode)
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    env:
+      SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Skip note
+        if: env.SARVAM_API_KEY == ''
+        run: echo "::notice::SARVAM_API_KEY secret not set; skipping the live eval gate."
+      - name: Run eval (fails if routing < 85% or completion < 70%)
+        if: env.SARVAM_API_KEY != ''
+        run: python eval/eval_runner.py --mode text --min-routing 0.85 --min-completion 0.70 --out eval/results/ci.json
+      - name: Upload eval report
+        if: always() && env.SARVAM_API_KEY != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval/results/ci.json

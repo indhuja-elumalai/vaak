@@ -1,6 +1,7 @@
 """Vaak CLI: the full voice loop, STT -> agent -> TTS, with a text-only fallback.
 
-  python cli.py --audio samples/me.m4a     # spoken query from a file
+  python cli.py --audio samples/me.m4a     # spoken query from a file (auto-detect language)
+  python cli.py --audio q.m4a --lang ta-IN # force the spoken language
   python cli.py --text "37 times 48?"      # typed query, spoken reply
   python cli.py --text "..." --text-only   # no voice at all
   python cli.py                            # interactive session
@@ -30,7 +31,7 @@ from pathlib import Path
 
 from core.agent_runtime import Agent, load_tools
 from core.conversation import Conversation
-from core.pipeline import PipelineError, TurnResult, VoicePipeline
+from core.pipeline import PipelineError, TurnResult, UnsupportedLanguageError, VoicePipeline
 from core.tool_registry import ToolRegistry
 
 DEFAULT_TOOLS = "tools.study_tools"
@@ -70,9 +71,10 @@ def show(turn: TurnResult, autoplay: bool) -> None:
             play(turn.speech.path)
 
 
-def ask_audio(pipeline: VoicePipeline, path: str, autoplay: bool, interactive: bool) -> None:
+def ask_audio(pipeline: VoicePipeline, path: str, autoplay: bool, interactive: bool,
+              language: str = "unknown") -> None:
     try:
-        show(pipeline.run_audio(path), autoplay)
+        show(pipeline.run_audio(path, language_code=language), autoplay)
     except (PipelineError, FileNotFoundError) as e:
         print(f"  error   : {e}")
         if not interactive:
@@ -107,7 +109,10 @@ def interactive(pipeline: VoicePipeline, autoplay: bool) -> None:
         elif line.startswith("/audio"):
             ask_audio(pipeline, line.removeprefix("/audio").strip(), autoplay, interactive=True)
         else:
-            show(pipeline.run_text(line), autoplay)
+            try:
+                show(pipeline.run_text(line), autoplay)
+            except UnsupportedLanguageError as e:
+                print(f"  error   : {e}")
 
 
 def main() -> None:
@@ -115,6 +120,8 @@ def main() -> None:
     src = parser.add_mutually_exclusive_group()
     src.add_argument("--audio", help="audio file with a spoken question")
     src.add_argument("--text", help="typed question")
+    parser.add_argument("--lang", default="unknown", choices=["unknown", "en-IN", "hi-IN", "ta-IN"],
+                        help="spoken language for --audio (default: auto-detect)")
     parser.add_argument("--text-only", action="store_true", help="don't synthesize spoken replies")
     parser.add_argument("--no-play", action="store_true", help="save the reply audio but don't play it")
     parser.add_argument("--tools", default=DEFAULT_TOOLS, help="tools module to load")
@@ -127,9 +134,13 @@ def main() -> None:
     autoplay = not args.no_play
 
     if args.audio:
-        ask_audio(pipeline, args.audio, autoplay, interactive=sys.stdin.isatty())
+        ask_audio(pipeline, args.audio, autoplay, interactive=sys.stdin.isatty(), language=args.lang)
     elif args.text:
-        show(pipeline.run_text(args.text), autoplay)
+        try:
+            show(pipeline.run_text(args.text), autoplay)
+        except UnsupportedLanguageError as e:
+            print(f"  error   : {e}")
+            sys.exit(1)
     else:
         interactive(pipeline, autoplay)
 

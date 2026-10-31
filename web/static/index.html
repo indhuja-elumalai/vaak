@@ -63,6 +63,15 @@
         </button>
         <input type="file" id="fileInput" accept="audio/*" hidden>
         <textarea id="input" rows="1" placeholder="Ask anything…" aria-label="Your question"></textarea>
+        <label class="lang-pick" id="langPick" title="Spoken language. Auto detects English, Hindi or Tamil; pick one if Vaak mishears you.">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          <select id="langSelect" aria-label="Spoken language">
+            <option value="unknown">Auto</option>
+            <option value="en-IN">English</option>
+            <option value="hi-IN">हिन्दी</option>
+            <option value="ta-IN">தமிழ்</option>
+          </select>
+        </label>
         <button class="mic-btn" id="micBtn" type="button" title="Speak your question" aria-pressed="false">
           <svg class="icon icon-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
           <svg class="icon icon-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>

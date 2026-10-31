@@ -1,0 +1,89 @@
+{
+  "name": "study_eval_set",
+  "version": 2,
+  "description": "Study-helper eval: tool routing, answer correctness, grounding and latency across English, Hindi/Hinglish and Tamil/Tanglish, single-turn and follow-ups.",
+  "scoring": {
+    "expect_route": "acceptable routes for the turn: a tool name (must be called) or \"direct\" (no tool calls). Any one listed route passes.",
+    "expect_values": "task completion: some number in the answer must equal one of these, allowing rounding (55.12 matches 55.1156).",
+    "expect_text": "task completion: the answer must contain one of these (case-insensitive, spaces ignored)."
+  },
+  "cases": [
+    {"id": "calc-en", "language": "English", "category": "tool", "voice": "en-IN",
+     "turns": [{"query": "What is 37 times 48?", "expect_route": ["calculate"], "expect_values": [1776]}]},
+
+    {"id": "calc-hinglish", "language": "Hinglish", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "144 ka square root kya hai?", "expect_route": ["calculate"], "expect_values": [12]}]},
+
+    {"id": "calc-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "256 இன் வர்க்கமூலம் என்ன?", "expect_route": ["calculate"], "expect_values": [16]}]},
+
+    {"id": "percent-en", "language": "English", "category": "tool", "voice": "en-IN",
+     "turns": [{"query": "What is 15% of 240?", "expect_route": ["calculate"], "expect_values": [36]}]},
+
+    {"id": "convert-hinglish", "language": "Hinglish", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "5 kilometer ko miles mein convert karo", "expect_route": ["convert_units"], "expect_values": [3.10686]}]},
+
+    {"id": "convert-temp-en", "language": "English", "category": "tool", "voice": "en-IN",
+     "turns": [{"query": "100 degree Fahrenheit is how much in Celsius?", "expect_route": ["convert_units"], "expect_values": [37.7778]}]},
+
+    {"id": "convert-ta", "language": "Tamil", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "25 கிலோகிராம் எத்தனை பவுண்டு?", "expect_route": ["convert_units"], "expect_values": [55.1156]}]},
+
+    {"id": "convert-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "100 kilometer-ah miles-la convert pannu", "expect_route": ["convert_units"], "expect_values": [62.1371]}]},
+
+    {"id": "formula-hinglish", "language": "Hinglish", "category": "tool", "voice": "hi-IN",
+     "turns": [{"query": "Kinetic energy ka formula kya hai?", "expect_route": ["lookup_formula"], "expect_text": ["1/2", "0.5", "½", "half", "आधा"]}]},
+
+    {"id": "formula-tanglish", "language": "Tanglish", "category": "tool", "voice": "ta-IN",
+     "turns": [{"query": "Ohm's law formula enna?", "expect_route": ["lookup_formula"], "expect_text": ["v=i*r", "v=i×r", "v=ir", "v=i·r", "v=ixr", "v=itimesr", "vequalsitimesr", "vequalsi*r", "vequalsir", "vequalsiintor"]}]},
+
+    {"id": "formula-calc-hinglish", "language": "Hinglish", "category": "formula+calc", "voice": "hi-IN",
+     "turns": [{"query": "Radius 7 cm wale circle ka area kitna hoga?", "expect_route": ["calculate"], "expect_values": [153.938]}]},
+
+    {"id": "formula-calc-en", "language": "English", "category": "formula+calc", "voice": "en-IN",
+     "turns": [{"query": "What is the kinetic energy of a 2 kg ball moving at 3 m/s?", "expect_route": ["calculate"], "expect_values": [9]}]},
+
+    {"id": "impossible-en", "language": "English", "category": "impossible", "voice": "en-IN",
+     "turns": [{"query": "Convert 5 kg to meters", "expect_route": ["direct", "convert_units"], "expect_text": ["mass", "different", "cannot", "can't", "not possible"]}]},
+
+    {"id": "direct-en", "language": "English", "category": "direct", "voice": "en-IN",
+     "turns": [{"query": "Who wrote India's national anthem?", "expect_route": ["direct"], "expect_text": ["tagore"]}]},
+
+    {"id": "direct-hinglish", "language": "Hinglish", "category": "direct", "voice": "hi-IN",
+     "turns": [{"query": "Photosynthesis kya hota hai? Simple mein samjhao.", "expect_route": ["direct"], "expect_text": ["sunlight", "oxygen", "glucose", "carbon dioxide", "सूर्य", "ऑक्सीजन"]}]},
+
+    {"id": "direct-ta", "language": "Tamil", "category": "direct", "voice": "ta-IN",
+     "turns": [{"query": "ஒளிச்சேர்க்கை என்றால் என்ன?", "expect_route": ["direct"], "expect_text": ["சூரிய", "ஆக்சிஜன்", "குளுக்கோஸ்", "ஒளி"]}]},
+
+    {"id": "fact-tanglish", "language": "Tanglish", "category": "direct-fact", "voice": "ta-IN",
+     "turns": [{"query": "Tamizhil mothom ethana ezhuthukkal irukku?", "expect_route": ["direct"], "expect_values": [247]}]},
+
+    {"id": "fact-en", "language": "English", "category": "direct-fact", "voice": "en-IN",
+     "turns": [{"query": "How many bones are there in an adult human body?", "expect_route": ["direct"], "expect_values": [206]}]},
+
+    {"id": "followup-en", "language": "English", "category": "follow-up", "voice": "en-IN",
+     "turns": [
+       {"query": "25 kg in pounds?", "expect_route": ["convert_units"], "expect_values": [55.1156]},
+       {"query": "and in grams?", "expect_route": ["convert_units"], "expect_values": [25000]}
+     ]},
+
+    {"id": "followup-hinglish", "language": "Hinglish", "category": "follow-up", "voice": "hi-IN",
+     "turns": [
+       {"query": "Kinetic energy ka formula kya hai?", "expect_route": ["lookup_formula"], "expect_text": ["1/2", "0.5", "½", "half", "आधा"]},
+       {"query": "Ab 2 kg aur 3 m/s ke liye calculate karo", "expect_route": ["calculate"], "expect_values": [9]}
+     ]},
+
+    {"id": "followup-ta", "language": "Tamil", "category": "follow-up", "voice": "ta-IN",
+     "turns": [
+       {"query": "7 cm ஆரம் கொண்ட வட்டத்தின் பரப்பளவு என்ன?", "expect_route": ["calculate"], "expect_values": [153.938]},
+       {"query": "அதன் சுற்றளவு என்ன?", "expect_route": ["calculate"], "expect_values": [43.982]}
+     ]},
+
+    {"id": "followup-direct-en", "language": "English", "category": "follow-up", "voice": "en-IN",
+     "turns": [
+       {"query": "Who wrote India's national anthem?", "expect_route": ["direct"], "expect_text": ["tagore"]},
+       {"query": "When was he born?", "expect_route": ["direct"], "expect_values": [1861]}
+     ]}
+  ]
+}

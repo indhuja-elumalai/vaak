@@ -12,7 +12,7 @@ const els = {
   micBtn: $("#micBtn"), sendBtn: $("#sendBtn"), attachBtn: $("#attachBtn"), fileInput: $("#fileInput"),
   status: $("#status"), toast: $("#toast"), player: $("#player"), voiceToggle: $("#voiceToggle"),
   themeToggle: $("#themeToggle"), modelPill: $("#modelPill"), footnote: $("#footnote"),
-  newChat: $("#newChat"),
+  newChat: $("#newChat"), langSelect: $("#langSelect"), langPick: $("#langPick"),
 };
 
 /* ================= Atom =================
@@ -257,6 +257,7 @@ async function ask({ text, blob, filename }) {
       form.append("file", blob, filename);
       form.append("speak", String(voiceOn));
       form.append("session_id", sessionId);
+      form.append("language", els.langSelect.value);
       res = await fetch("/api/ask/audio", { method: "POST", body: form });
     } else {
       res = await fetch("/api/ask/text", {
@@ -268,6 +269,24 @@ async function ask({ text, blob, filename }) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      if (data.stage === "language") {
+        // Outside English/Hindi/Tamil (often an STT mis-detection): don't answer, ask for a language.
+        userLi.classList.add("failed");
+        if (data.heard) $(".text", userLi).textContent = data.heard;
+        const label = $(".heard-label", userLi);
+        label.textContent = `${blob ? "Heard · " : ""}${data.detected_name} — not supported`;
+        $(".heard", userLi).hidden = false;
+        botLi.remove();
+        toast(`That sounded like ${data.detected_name}. Vaak understands English, Hindi and Tamil.`);
+        setStatus(blob ? "Pick your spoken language below and ask again." : "Please ask in English, Hindi or Tamil.");
+        if (blob) {
+          els.langPick.classList.remove("attention");
+          void els.langPick.offsetWidth; // restart the nudge animation
+          els.langPick.classList.add("attention");
+          els.langSelect.focus();
+        }
+        return;
+      }
       if (data.stage === "stt") {
         // Voice fallback: keep the conversation going by typing.
         userLi.classList.add("failed");
@@ -530,6 +549,12 @@ els.micBtn.addEventListener("click", () => {
 
 els.attachBtn.addEventListener("click", () => els.fileInput.click());
 els.newChat.addEventListener("click", newChat);
+els.langSelect.value = store.get("vaak-lang") || "unknown";
+els.langSelect.addEventListener("change", () => {
+  store.set("vaak-lang", els.langSelect.value);
+  els.langPick.classList.remove("attention");
+  setStatus("");
+});
 els.fileInput.addEventListener("change", () => {
   const file = els.fileInput.files[0];
   els.fileInput.value = "";

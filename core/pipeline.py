@@ -17,7 +17,9 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from core.agent_runtime import Agent, AgentResult, TraceStep, detect_language
+from core.agent_runtime import (
+    LANGUAGE_NAMES, SUPPORTED_LANGUAGES, Agent, AgentResult, TraceStep, detect_language,
+)
 from core.conversation import Conversation
 from voice_io.stt import Transcript, transcribe
 from voice_io.tts import SARVAM_TTS_LANGS, SpeechResult, prepare_for_speech, synthesize
@@ -25,6 +27,30 @@ from voice_io.tts import SARVAM_TTS_LANGS, SpeechResult, prepare_for_speech, syn
 
 class PipelineError(RuntimeError):
     pass
+
+
+class UnsupportedLanguageError(PipelineError):
+    """The input is in a language Vaak doesn't handle (e.g. STT auto-detected Telugu)."""
+
+    def __init__(self, language_code: str, heard: str) -> None:
+        self.language_code = language_code
+        self.language_name = LANGUAGE_NAMES.get(language_code, language_code)
+        self.heard = heard
+        supported = ", ".join(LANGUAGE_NAMES[c] for c in SUPPORTED_LANGUAGES)
+        super().__init__(f"That sounded like {self.language_name}. Vaak understands {supported}.")
+
+
+def _check_supported(text: str, stt_language: str | None = None) -> None:
+    """Refuse input in a language outside SUPPORTED_LANGUAGES.
+
+    The transcript's script decides first (Telugu script -> refuse; Devanagari -> Hindi,
+    even if STT labelled it Marathi). The STT label only decides for Latin-script text.
+    """
+    lang, script = detect_language(text)
+    if script == "latin" and stt_language and stt_language != "unknown":
+        lang = stt_language if stt_language not in SUPPORTED_LANGUAGES else lang
+    if lang != "unknown" and lang not in SUPPORTED_LANGUAGES:
+        raise UnsupportedLanguageError(lang, text)
 
 
 @dataclass
@@ -56,14 +82,16 @@ class VoicePipeline:
         self.out_dir = Path(out_dir)
         self.conversation = conversation  # None = every question stands alone
 
-    def run_audio(self, audio_path: str | Path) -> TurnResult:
+    def run_audio(self, audio_path: str | Path, language_code: str = "unknown") -> TurnResult:
+        """language_code: "unknown" lets STT auto-detect; a supported code forces that language."""
         start = time.perf_counter()
         try:
-            transcript = transcribe(audio_path)
+            transcript = transcribe(audio_path, language_code=language_code)
         except Exception as e:
             raise PipelineError(f"Speech-to-text failed: {e}") from e
         if not transcript.text:
             raise PipelineError("Speech-to-text returned an empty transcript (silent audio?)")
+        _check_supported(transcript.text, transcript.language_code)
 
         stt_ms = transcript.latency_ms
         turn = self._answer(transcript.text, transcript.language_code, input_mode="audio", offset_ms=stt_ms)
@@ -77,6 +105,7 @@ class VoicePipeline:
 
     def run_text(self, text: str, language_code: str | None = None) -> TurnResult:
         start = time.perf_counter()
+        _check_supported(text)
         turn = self._answer(text.strip(), language_code, input_mode="text")
         turn.timings_ms["total"] = (time.perf_counter() - start) * 1000
         return turn
