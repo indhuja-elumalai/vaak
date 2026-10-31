@@ -13,7 +13,9 @@ const els = {
   status: $("#status"), toast: $("#toast"), player: $("#player"), voiceToggle: $("#voiceToggle"),
   themeToggle: $("#themeToggle"), modelPill: $("#modelPill"), footnote: $("#footnote"),
   newChat: $("#newChat"), langSelect: $("#langSelect"), langPick: $("#langPick"),
+  heroMic: $("#heroMic"), heroTimer: $("#heroTimer"), heroHint: $("#heroHint"),
 };
+const HERO_HINT = els.heroHint.textContent;
 
 /* ================= Atom =================
    A nucleus with three tilted orbits. Speed, spread and pulse follow the app state:
@@ -107,7 +109,9 @@ function frame(now) {
   const analyser = state === "listening" ? audio.mic : state === "speaking" ? audio.reply : null;
   const raw = analyser ? readLevel(analyser) : 0;
   level += (raw - level) * Math.min(1, dt * 12);
-  els.micBtn.style.setProperty("--level", state === "listening" ? level.toFixed(3) : "0");
+  const shown = state === "listening" ? level.toFixed(3) : "0";
+  els.micBtn.style.setProperty("--level", shown);
+  els.heroMic.style.setProperty("--level", shown);
 
   const base = STATE_PARAMS[state];
   const target = { ...base, pulse: 1 };
@@ -185,6 +189,8 @@ async function startRecording() {
     const duration = performance.now() - rec.started;
     if (state === "listening") setState("idle");
     els.micBtn.setAttribute("aria-pressed", "false");
+    els.heroMic.setAttribute("aria-pressed", "false");
+    els.heroHint.textContent = HERO_HINT;
     setStatus("");
     if (rec.cancelled) return;
     if (duration < 500) return toast("That was too short — hold on a moment longer next time.");
@@ -196,9 +202,13 @@ async function startRecording() {
   recorder.start(250);
   setState("listening");
   els.micBtn.setAttribute("aria-pressed", "true");
+  els.heroMic.setAttribute("aria-pressed", "true");
+  els.heroHint.textContent = "Listening. Tap again to send, or press Esc to cancel.";
   const tick = () => {
     const s = Math.floor((performance.now() - rec.started) / 1000);
-    setStatus(`<span class="dot"></span>Listening… tap the mic to send <span class="timer">0:${String(s).padStart(2, "0")}</span> · Esc to cancel`, true);
+    const clock = `0:${String(s).padStart(2, "0")}`;
+    els.heroTimer.textContent = clock;
+    setStatus(`<span class="dot"></span>Listening <span class="timer">${clock}</span> Tap the mic to send, Esc to cancel`, true);
     if (performance.now() - rec.started > MAX_RECORD_MS) stopRecording();
   };
   tick();
@@ -214,6 +224,10 @@ function micUnavailable(err) {
   toast(denied ? "Microphone access was blocked — type your question instead."
                : "No microphone available here — type your question instead.");
   setStatus("Voice input unavailable. You can still type, or upload an audio file with the clip.");
+  document.body.classList.add("mic-off");
+  els.heroHint.textContent = denied
+    ? "Microphone blocked. Allow it in your browser, or type your question below."
+    : "No microphone found. Type your question below instead.";
   els.input.focus();
 }
 
@@ -227,6 +241,15 @@ function stopPlayback() {
 }
 els.player.addEventListener("play", () => setState("speaking"));
 ["pause", "ended"].forEach(ev => els.player.addEventListener(ev, () => { if (state === "speaking") setState("idle"); }));
+// Show which answer's audio is playing on its Play button.
+["play", "pause", "ended", "emptied"].forEach(ev => els.player.addEventListener(ev, () => {
+  const playing = !els.player.paused && !els.player.ended;
+  document.querySelectorAll(".replay").forEach(btn => {
+    const on = playing && els.player.src.endsWith(btn.dataset.src);
+    btn.classList.toggle("playing", on);
+    $(".replay-text", btn).textContent = on ? "Playing" : "Play answer";
+  });
+}));
 
 /* ================= Conversation ================= */
 
@@ -297,6 +320,10 @@ async function ask({ text, blob, filename }) {
         els.input.focus();
         return;
       }
+      if (res.status === 429) {
+        // Public demo limits (see web/ops.py): say how long to wait instead of a raw error.
+        toast(data.error || "Too many questions. Please wait a moment.");
+      }
       throw new Error(data.detail || data.error || `Request failed (${res.status})`);
     }
 
@@ -342,6 +369,8 @@ const ICON_CHECK = '<svg class="icon" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4
 const ICON_ALERT = '<svg class="icon" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>';
 const ICON_STEPS = '<svg class="icon" viewBox="0 0 24 24"><path d="M4 6h10M4 12h16M4 18h7"/></svg>';
 const ICON_PLAY = '<svg class="icon" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
+const ICON_CLOCK = '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const secs = ms => `${(ms / 1000).toFixed(1)} s`;
 
 function renderAnswer(li, data) {
   li.classList.remove("pending");
@@ -364,8 +393,14 @@ function renderAnswer(li, data) {
   }
 
   const meta = $(".meta", li);
-  meta.append(chip(data.language_label));
-  meta.append(chip(data.route === "tool" ? "Used a tool" : "Direct answer", data.route === "tool" ? "route-tool" : ""));
+  const lang = chip(data.language_label);
+  lang.title = "Reply language";
+  meta.append(lang);
+  const toolNames = [...new Set(data.tool_calls.map(c => c.name))];
+  const route = chip(data.route === "tool" ? `Tool: ${toolNames.join(", ")}` : "Direct answer",
+    data.route === "tool" ? "route-tool" : "");
+  route.title = data.route === "tool" ? "Vaak called a tool to compute this" : "Answered by the model without a tool";
+  meta.append(route);
   const g = data.grounding;
   if (g) meta.append(verificationChip(g));
   const earlier = (data.turns_in_memory || 0) - 1;
@@ -376,19 +411,19 @@ function renderAnswer(li, data) {
     meta.append(c);
   }
   const t = data.timings_ms || {};
-  const parts = [["stt", "STT"], ["agent", "Agent"], ["tts", "TTS"]]
-    .filter(([k]) => t[k] != null).map(([k, label]) => `${label} ${(t[k] / 1000).toFixed(1)}s`);
-  const timing = document.createElement("span");
-  timing.className = "timing";
-  timing.textContent = parts.join(" · ");
-  timing.title = `Total ${(t.total / 1000).toFixed(1)}s · ${data.model}`;
+  const parts = [["stt", "Speech to text"], ["agent", "Agent"], ["tts", "Text to speech"]]
+    .filter(([k]) => t[k] != null).map(([k, label]) => `${label} ${secs(t[k])}`);
+  const timing = chip(secs(t.total ?? 0), "latency timing");
+  timing.insertAdjacentHTML("afterbegin", ICON_CLOCK);
+  timing.title = `Total ${secs(t.total ?? 0)}: ${parts.join(", ")} (${data.model})`;
   meta.append(timing);
 
   if (data.audio_url) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "replay";
-    btn.innerHTML = `${ICON_PLAY}<span>Play</span>`;
+    btn.dataset.src = data.audio_url;
+    btn.innerHTML = `${ICON_PLAY}<span class="bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="replay-text">Play answer</span>`;
     btn.addEventListener("click", () => play(data.audio_url));
     meta.append(btn);
   }
@@ -404,13 +439,13 @@ function renderAnswer(li, data) {
 }
 
 const VERDICTS = {
-  verified:   { cls: "verified",   icon: ICON_CHECK, text: "Verified against tools",
+  verified:   { cls: "verified",   icon: ICON_CHECK, text: "Verified",
                 tip: "Every number in this answer matches a tool result." },
-  corrected:  { cls: "verified",   icon: ICON_CHECK, text: "Corrected to match tools",
+  corrected:  { cls: "verified",   icon: ICON_CHECK, text: "Corrected",
                 tip: "The first draft had a number no tool produced; Vaak rewrote it. See the steps below." },
-  flagged:    { cls: "flagged",    icon: ICON_ALERT, text: "Numbers not verified",
+  flagged:    { cls: "flagged",    icon: ICON_ALERT, text: "Not verified",
                 tip: "Some numbers don't match any tool result, even after a rewrite." },
-  unverified: { cls: "unverified", icon: "",         text: "Not verified",
+  unverified: { cls: "unverified", icon: "",         text: "Unverified",
                 tip: "A direct answer from the model. No tool result to check it against." },
 };
 
@@ -429,7 +464,7 @@ function renderTrace(data) {
   const d = document.createElement("details");
   d.className = "trace";
   d.innerHTML = `<summary>${ICON_STEPS}<span>How Vaak answered</span><strong></strong>${ICON_CHEVRON}</summary><ol class="steps"></ol>`;
-  $("strong", d).textContent = `${steps.length} steps · ${(total / 1000).toFixed(1)}s`;
+  $("strong", d).textContent = `${steps.length} steps in ${secs(total)}`;
   const list = $(".steps", d);
   for (const s of steps) {
     const li = document.createElement("li");
@@ -459,6 +494,7 @@ function renderTrace(data) {
 
 function renderError(li, message) {
   li.classList.remove("pending");
+  li.classList.add("errored");
   freezeAtom(li);
   const warn = $(".warn", li);
   warn.hidden = false;
@@ -542,10 +578,12 @@ els.input.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submitText(); }
 });
 
-els.micBtn.addEventListener("click", () => {
+function toggleMic() {
   if (state === "listening") stopRecording();
   else if (!busy) startRecording();
-});
+}
+els.micBtn.addEventListener("click", toggleMic);
+els.heroMic.addEventListener("click", toggleMic);
 
 els.attachBtn.addEventListener("click", () => els.fileInput.click());
 els.newChat.addEventListener("click", newChat);
@@ -561,8 +599,15 @@ els.fileInput.addEventListener("change", () => {
   if (file) ask({ blob: file, filename: file.name });
 });
 
+// Examples fill the question box so it can be edited (or just sent with Enter).
 document.querySelectorAll(".suggestion").forEach(btn =>
-  btn.addEventListener("click", () => ask({ text: btn.dataset.q })));
+  btn.addEventListener("click", () => {
+    els.input.value = btn.dataset.q;
+    autoGrow();
+    updateSendButton();
+    els.input.focus();
+    els.input.setSelectionRange(els.input.value.length, els.input.value.length);
+  }));
 
 els.voiceToggle.addEventListener("click", () => {
   voiceOn = !voiceOn;
@@ -589,7 +634,8 @@ document.addEventListener("keydown", e => {
 document.addEventListener("pointerdown", () => ensureAudioContext(), { once: true });
 
 fetch("/api/info").then(r => r.json()).then(info => {
-  els.modelPill.textContent = `${info.model} · ${info.tools.length} tools`;
+  els.modelPill.textContent = info.model;
+  els.modelPill.title = `Model: ${info.model}. Tools: ${info.tools.join(", ")}`;
   els.modelPill.hidden = false;
   els.footnote.textContent = `Direct answers come from ${info.model} and can be wrong. Tool results (${info.tools.join(", ")}) are computed exactly.`;
 }).catch(() => {});
